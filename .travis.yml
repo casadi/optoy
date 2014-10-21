@@ -11,4 +11,4 @@ before_install:
 install:
     - pip install .
 
-script:  echo "123"
+script: py.test . 
