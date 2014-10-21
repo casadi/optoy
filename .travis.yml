@@ -1,7 +1,7 @@
-language: python
+language: c
 python:
         - "2.7"
-        
+
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y libgfortran3 liblapack3gf python-numpy python-scipy python-matplotlib
