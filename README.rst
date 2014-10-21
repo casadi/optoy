@@ -3,6 +3,10 @@ optoy
 
 Because optimization is fun!
 
+.. |unix| image:: https://api.travis-ci.org/casadi/optoy.svg
+    :target: http://travis-ci.org/casadi/optoy
+    :alt: Build Status of the master branch on Linux
+
 Optoy combines the power of `casadi <http://casadi.org>`_ with a very compact Python user interface.
 Start optimizing in minutes...
 
