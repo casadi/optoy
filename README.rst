@@ -30,7 +30,7 @@ Static optimization
 Dynamic optimization
 ====================
 
-.. code-block::
+.. code-block:: python
 
     from optoy import *
 
