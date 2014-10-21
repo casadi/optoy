@@ -4,4 +4,4 @@ python:
 install:
     - pip install .
 
-script:  echo "test"
+script:  echo "123"
