@@ -12,6 +12,11 @@ Because optimization is fun!
 Optoy combines the power of `casadi <http://casadi.org>`_ with a very compact Python user interface.
 Start optimizing in minutes...
 
+Installation:
+
+.. code-block:: bash
+
+    $ pip install git+git://github.com/casadi/optoy.git
 
 
 Static optimization
