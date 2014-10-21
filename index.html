@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Optoy by casadi</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/main.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+
+      <header>
+        <h1>Optoy</h1>
+        <p>Because optimization is fun!</p>
+      </header>
+
+      <div id="banner">
+        <span id="logo"></span>
+
+        <a href="https://github.com/casadi/optoy" class="button fork"><strong>View On GitHub</strong></a>
+        <div class="downloads">
+          <span>Downloads:</span>
+          <ul>
+            <li><a href="https://github.com/casadi/optoy/zipball/master" class="button">ZIP</a></li>
+            <li><a href="https://github.com/casadi/optoy/tarball/master" class="button">TAR</a></li>
+          </ul>
+        </div>
+      </div><!-- end banner -->
+
+    <div class="wrapper">
+      <nav>
+        <ul></ul>
+      </nav>
+      <section>
+        <h1>
+<a name="optoy" class="anchor" href="#optoy"><span class="octicon octicon-link"></span></a>optoy</h1>
+
+<p>Because optimization is fun!</p>
+
+<p>Optoy combines the power of <a href="http://casadi.org">casadi</a> with a very compact Python user interface.
+Start optimizing in minutes...</p>
+
+<h1>
+<a name="static-optimization" class="anchor" href="#static-optimization"><span class="octicon octicon-link"></span></a>Static optimization</h1>
+
+<div class="highlight highlight-python"><pre><span class="kn">from</span> <span class="nn">optoy</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
+<span class="k">print</span> <span class="s">"cost = "</span><span class="p">,</span> <span class="n">minimize</span><span class="p">((</span><span class="mi">1</span><span class="o">-</span><span class="n">x</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,[</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="o">+</span><span class="n">y</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">])</span>
+<span class="k">print</span> <span class="s">"sol = "</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">sol</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">sol</span>
+</pre></div>
+
+<h1>
+<a name="dynamic-optimization" class="anchor" href="#dynamic-optimization"><span class="octicon octicon-link"></span></a>Dynamic optimization</h1>
+
+<div class="highlight highlight-python"><pre><span class="kn">from</span> <span class="nn">optoy</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">state</span><span class="p">()</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">state</span><span class="p">()</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">state</span><span class="p">()</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">control</span><span class="p">()</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">var</span><span class="p">(</span><span class="n">lb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">init</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">x</span><span class="o">.</span><span class="n">dot</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">x</span><span class="o">-</span><span class="n">y</span><span class="o">+</span><span class="n">u</span>
+<span class="n">y</span><span class="o">.</span><span class="n">dot</span> <span class="o">=</span> <span class="n">x</span>
+<span class="n">q</span><span class="o">.</span><span class="n">dot</span> <span class="o">=</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">y</span><span class="o">**</span><span class="mi">2</span>
+
+<span class="n">ocp</span><span class="p">(</span><span class="n">T</span><span class="p">,[</span><span class="n">u</span><span class="o">&gt;=-</span><span class="mi">1</span><span class="p">,</span><span class="n">u</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">,</span><span class="n">q</span><span class="o">.</span><span class="n">start</span><span class="o">==</span><span class="mi">0</span><span class="p">,</span><span class="n">x</span><span class="o">.</span><span class="n">start</span><span class="o">==</span><span class="mi">1</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">start</span><span class="o">==</span><span class="mi">0</span><span class="p">,</span><span class="n">x</span><span class="o">.</span><span class="n">end</span><span class="o">==</span><span class="mi">0</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">end</span><span class="o">==</span><span class="mi">0</span><span class="p">],</span><span class="n">T</span><span class="o">=</span><span class="n">T</span><span class="p">,</span><span class="n">N</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+
+<span class="k">print</span> <span class="n">T</span><span class="o">.</span><span class="n">sol</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">sol</span>
+<span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">sol</span><span class="p">)</span>
+<span class="n">plot</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">sol</span><span class="p">)</span>
+<span class="n">plot</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">sol</span><span class="p">)</span>
+<span class="n">show</span><span class="p">()</span>
+</pre></div>
+      </section>
+      <footer>
+        <p>Project maintained by <a href="https://github.com/casadi">casadi</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
