@@ -5,7 +5,7 @@ python:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y libgfortran3 liblapack3gf python-numpy python-scipy python-matplotlib
-  - "wget -O casadi.deb http://downloads.sourceforge.net/project/casadi/CasADi/2.1.2/Ubuntu-12.04/python-casadi_2.1.2-2_amd64.deb?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fcasadi%2Ffiles%2FCasADi%2F2.1.2%2FUbuntu-12.04%2F&ts=1413919120&use_mirror=master"
+  - "wget -O casadi.deb http://downloads.sourceforge.net/project/casadi/CasADi/2.1.2/Ubuntu-12.04/python-casadi_2.1.2-2_amd64.deb"
   - sudo dpkg -i casadi.deb
 
 install:
