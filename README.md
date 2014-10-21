@@ -3,7 +3,7 @@ optoy
 
 Because optimization is fun!
 
-Optoy combines the power of [casadi](casadi.org) with a very compact Python user interface.
+Optoy combines the power of [casadi](http://casadi.org) with a very compact Python user interface.
 Start optimizing in minutes...
 
 
