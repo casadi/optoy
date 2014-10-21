@@ -3,6 +3,8 @@ optoy
 
 Because optimization is fun!
 
+|unix|
+
 .. |unix| image:: https://api.travis-ci.org/casadi/optoy.svg
     :target: http://travis-ci.org/casadi/optoy
     :alt: Build Status of the master branch on Linux
