@@ -55,3 +55,5 @@ Dynamic optimization
     plot(y.sol)
     plot(u.sol)
     show()
+
+Full documentation: https://readthedocs.org/projects/optoy/
