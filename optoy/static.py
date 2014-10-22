@@ -21,8 +21,15 @@
 #     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 #
-from casadi import *
-from casadi.tools import *
+
+from casadi import MX, inf, Sparsity, \
+  getSymbols, veccat, \
+  MXFunction, NlpSolver, \
+  nlpOut, nlpIn, \
+  OP_LE, OP_LT, OP_EQ
+
+from casadi.tools import struct, struct_symMX, struct_MX, \
+  entry
 
 class OptimizationObject(MX):
   def create(self,shape,name):
@@ -38,35 +45,36 @@ class OptimizationContext:
   eval_cache = {}
     
 class OptimizationVariable(OptimizationObject):
+  """
+    Create a decision variable
+    
+    Parameters
+    -------------------
+    
+    shape: integer or (integer,integer)
+      Matrix shape of the symbol
+    
+    name: string
+      A name for the symbol to be used in printing.
+      Not required to be unique
+ 
+    lb: number
+      Lower bound on the decision variable
+      May also be set after initialization as 'x.lb = number'
+
+    ub: number
+      Upper bound on the decision variable
+      May also be set after initialization as 'x.ub = number'
+      
+    init: number
+      Initial guess for the optimization solver
+      May also be set after initialization as 'x.init = number'
+      
+  """
+  
   mapping = {}
  
   def __init__(self,shape=1,lb=-inf,ub=inf,name="x",init=0):
-    """
-      Create a decision variable
-      
-      Parameters
-      -------------------
-      
-      shape: integer or (integer,integer)
-        Matrix shape of the symbol
-      
-      name: string
-        A name for the symbol to be used in printing.
-        Not required to be unique
-   
-      lb: number
-        Lower bound on the decision variable
-        May also be set after initialization as 'x.lb = number'
-
-      ub: number
-        Upper bound on the decision variable
-        May also be set after initialization as 'x.ub = number'
-        
-      init: number
-        Initial guess for the optimization solver
-        May also be set after initialization as 'x.init = number'
-        
-    """
     self.lb = lb
     self.ub = ub
     self.create(shape,name)
@@ -74,30 +82,30 @@ class OptimizationVariable(OptimizationObject):
     self.sol = None
     
 class OptimizationParameter(OptimizationObject):
+  """
+    Create a parameter, ie a thing that is fixed during optimization
+    
+    Parameters
+    -------------------
+    
+    shape: integer or (integer,integer)
+      Matrix shape of the symbol
+    
+    name: string
+      A name for the symbol to be used in printing.
+      Not required to be unique
+ 
+    value: number or matrix
+      Value that the parameter should take during optimization
+      May also be set after initialization as 'x.value = number'
+
+  """
   mapping = {}
 
   def __init__(self,shape=1,value=0,name="p"):
-    """
-      Create a parameter, ie a thing that is fixed during optimization
-      
-      Parameters
-      -------------------
-      
-      shape: integer or (integer,integer)
-        Matrix shape of the symbol
-      
-      name: string
-        A name for the symbol to be used in printing.
-        Not required to be unique
-   
-      value: number or matrix
-        Value that the parameter should take during optimization
-        May also be set after initialization as 'x.value = number'
-
-    """
     self.value = value
     self.create(shape,name)
-    
+
 var = OptimizationVariable
 par = OptimizationParameter
 
@@ -220,7 +228,7 @@ def minimize(f,gl=[],verbose=False):
     if eq:
       lbg[str(i)] = ubg[str(i)] = 0
     else:
-      lbg[str(i)] = -Inf
+      lbg[str(i)] = -inf
       ubg[str(i)] = 0
   
   # Solve the problem numerically
