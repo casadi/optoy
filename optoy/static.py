@@ -96,6 +96,10 @@ class OptimizationParameter(OptimizationObject):
     self.value = value
     self.create(shape,name)
 
+  @property
+  def sol(self):
+    return self.value
+
 var = OptimizationVariable
 par = OptimizationParameter
 
