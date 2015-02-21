@@ -31,18 +31,7 @@ from casadi import MX, inf, Sparsity, \
 from casadi.tools import struct, struct_symMX, struct_MX, \
   entry
 
-class OptimizationObject(MX):
-  def create(self,shape,name):
-    if not isinstance(shape,tuple): shape = (shape,) 
-    MX.__init__(self,MX.sym(name,Sparsity.dense(*shape)))
-    self.mapping[hash(self)] = self
-    
-  def __iter__(self):
-    while True:
-      yield 123
-
-class OptimizationContext:
-  eval_cache = {}
+from base import *
     
 class OptimizationVariable(OptimizationObject):
   """
@@ -71,10 +60,10 @@ class OptimizationVariable(OptimizationObject):
       May also be set after initialization as 'x.init = number'
       
   """
-  
+  shorthand = "v"
   mapping = {}
  
-  def __init__(self,shape=1,lb=-inf,ub=inf,name="x",init=0):
+  def __init__(self,shape=1,lb=-inf,ub=inf,name="v",init=0):
     self.lb = lb
     self.ub = ub
     self.create(shape,name)
@@ -100,6 +89,7 @@ class OptimizationParameter(OptimizationObject):
       May also be set after initialization as 'x.value = number'
 
   """
+  shorthand = "p"
   mapping = {}
 
   def __init__(self,shape=1,value=0,name="p"):
@@ -109,6 +99,23 @@ class OptimizationParameter(OptimizationObject):
 var = OptimizationVariable
 par = OptimizationParameter
 
+def sort_constraints(gl):
+  # Determine nature of constraints, either g(x)<=0 or g(x)==0
+  gl_pure = []
+  gl_equality = []
+  for g in gl:
+    if g.isOperation(OP_LE) or g.isOperation(OP_LT):
+      gl_pure.append(g.getDep(0)-g.getDep(1))
+      gl_equality.append(False)
+    elif g.isOperation(OP_EQ):
+      gl_pure.append(g.getDep(0)-g.getDep(1))
+      gl_equality.append(True)
+    else:
+      raise Exception("Constrained type unknown. Use ==, >= or <= .")
+  return gl_pure, gl_equality
+
+
+        
 def maximize(f,**kwargs):
   return - minimize(-f,**kwargs)
 
@@ -154,32 +161,12 @@ def minimize(f,gl=[],verbose=False):
     raise Exception("Constraints must be given as a list")
   
   # Determine nature of constraints, either g(x)<=0 or g(x)==0
-  gl_pure = []
-  gl_equality = []
-  for g in gl:
-    if g.isOperation(OP_LE) or g.isOperation(OP_LT):
-      gl_pure.append(g.getDep(0)-g.getDep(1))
-      gl_equality.append(False)
-    elif g.isOperation(OP_EQ):
-      gl_pure.append(g.getDep(0)-g.getDep(1))
-      gl_equality.append(True)
-    else:
-      raise Exception("Constrained type unknown. Use ==, >= or <= .")
-      
-  # Get an exhausive list of all casadi symbols that make up f and gl
-  vars = getSymbols(veccat([f]+gl_pure))
+  gl_pure, gl_equality = sort_constraints(gl)
   
-  # Find out which OptimizationParameter and 
-  # OptimizationVariable objects correspond to those casadi symbols
-  x = []
-  p = []
-  for v in vars:
-    if hash(v) in OptimizationVariable.mapping:
-      x.append(OptimizationVariable.mapping[hash(v)])
-    elif hash(v) in OptimizationParameter.mapping:
-      p.append(OptimizationParameter.mapping[hash(v)])
-    else:
-      raise Exception("Cannot happen")
+  # Get all symbolic primitives
+  syms = get_primitives([f]+gl_pure)
+  x = syms["v"]
+  p = syms["p"]
   
   # Create structures
   X = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in x])
