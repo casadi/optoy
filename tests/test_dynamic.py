@@ -24,3 +24,20 @@ def test_1():
   #assert abs(x.start.sol-1)<1e-7
   #assert abs(x.end.sol-0)<1e-7
 
+def test_2():
+  xy = state(2)
+  q = state()
+  u = control()
+  T = var(lb=0,init=10)
+  x = xy[0]
+  y = xy[1]
+
+  xy.dot = vertcat([(1-y**2)*x-y+u,x])
+
+
+  q.dot = x**2+y**2
+
+  ocp(T,[u>=-1,u<=1,q.start==0,xy.start==vertcat([1,0]),xy.end==vertcat([0,0])],T=T,N=20,verbose=True)
+
+  print T.sol, xy.sol
+  assert abs(T.sol-2.9615750900664)<1e-7
