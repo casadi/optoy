@@ -25,6 +25,7 @@
 from casadi import *
 from casadi.tools import *
 
+
 class OptimizationObject(MX):
   """
 
@@ -65,6 +66,13 @@ def get_primitives(el):
     from the 'shorthand' class attribute of OptimzationObject subclasses
 
   """
+  backup = MX.__eq__
+
+  def cmpbyhash(self,b):
+    return hash(self)==hash(b)
+
+  MX.__eq__ = cmpbyhash
+
   # Get an exhausive list of all casadi symbols that make up f and gl
   vars = set(getSymbols(veccat(el)))
   
@@ -92,5 +100,7 @@ def get_primitives(el):
           categorized = True
     #if not categorized:
     #  raise Exception("Unknown symbol: " + str(v))
+  MX.__eq__ = backup
+
   return syms
 
