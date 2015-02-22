@@ -23,8 +23,6 @@
 #
 
 from static import *
-from casadi import *
-from casadi.tools import *
 
 class OptimizationContinousVariable(OptimizationObject): 
   """
