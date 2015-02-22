@@ -22,15 +22,6 @@
 #
 #
 
-from casadi import MX, inf, Sparsity, \
-  getSymbols, veccat, \
-  MXFunction, NlpSolver, \
-  nlpOut, nlpIn, \
-  OP_LE, OP_LT, OP_EQ
-
-from casadi.tools import struct, struct_symMX, struct_MX, \
-  entry
-
 from base import *
     
 class OptimizationVariable(OptimizationObject):
