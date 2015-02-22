@@ -76,6 +76,15 @@ def test_4():
   assert abs(y.sol-0)<1e-7
   """
 
+def test_5():
+  xy = var(2)
+  x = xy[0]
+  y = xy[1]
+  print "cost = ", minimize((1-x)**2+100*(y-x**2)**2)
+  print "sol = ", xy.sol
+  assert abs(xy.sol[0]-1)<1e-8
+  assert abs(xy.sol[0]-1)<1e-8
+
 def test_simple():
   x = var()
   y = var()
