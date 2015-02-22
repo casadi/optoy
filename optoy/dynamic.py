@@ -61,15 +61,6 @@ class OptimizationContinousVariable(OptimizationObject):
     self.lim_mapping[hash(self.start)] = self
     self.lim_mapping[hash(self.end)] = self
 
-  @classmethod
-  def getDependent(cl,v):
-    newvars = set()
-    if hash(v) in OptimizationState.mapping:
-      newvars.update(set(getSymbols(OptimizationState.mapping[hash(v)].dot)))
-    for m in [OptimizationState.lim_mapping, OptimizationControl.lim_mapping]:
-      if hash(v) in m: newvars.update({m[hash(v)]})
-    return newvars
-
 class OptimizationState(OptimizationContinousVariable):
   """
     Create a state variable
@@ -109,7 +100,7 @@ class OptimizationState(OptimizationContinousVariable):
     newvars = set()
     if hash(v) in cl.mapping:
       newvars.update(set(getSymbols(cl.mapping[hash(v)].dot)))
-    if hash(v) in cl.mapping: newvars.update({cl.mapping[hash(v)]})
+    if hash(v) in cl.lim_mapping: newvars.update(set(getSymbols(cl.lim_mapping[hash(v)])))
     return newvars
 
 class OptimizationControl(OptimizationContinousVariable):
@@ -150,7 +141,7 @@ class OptimizationControl(OptimizationContinousVariable):
   @classmethod
   def getDependent(cl,v):
     newvars = set()
-    if hash(v) in cl.mapping: newvars.update({cl.mapping[hash(v)]})
+    if hash(v) in cl.lim_mapping: newvars.update(set(getSymbols(cl.lim_mapping[hash(v)])))
     return newvars
 
 def ocp(f,gl=[],verbose=False,N=20,T=1.0):
