@@ -186,18 +186,19 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integratio
   lims = [i.start for i in syms["x"]] + [i.end for i in syms["x"]] + [i.start for i in syms["u"]]  + [i.end for i in syms["u"]]
   
   # Create structures
-  states   = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms["x"]])
-  controls = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms["u"]])
-  
-  X = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms["v"]]+[entry("X",struct=states,repeat=N+1),entry("U",struct=controls,repeat=N)])
+  states    = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms["x"]])
+  controls  = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms["u"]])
+  variables = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms["v"]])
+
+  X = struct_symMX([entry("V",struct=variables),entry("X",struct=states,repeat=N+1),entry("U",struct=controls,repeat=N)])
   P = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms["p"]])
   
   ode_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"],[((T+0.0)/N)*vertcat([i.dot for i in syms["x"]])])
   ode_out.init()
   
-  nonstates = struct_symMX([entry("controls",struct=controls),entry("p",struct=P)]+[entry(str(hash(i)),shape=i.sparsity()) for i in syms["v"]])
+  nonstates = struct_symMX([entry("controls",struct=controls),entry("p",struct=P),entry("variables",struct=variables)])
   
-  ode = MXFunction(daeIn(x=states,p=nonstates),daeOut(ode=ode_out(states[...]+nonstates["controls",...]+nonstates["p",...]+nonstates[...][2:])[0]))
+  ode = MXFunction(daeIn(x=states,p=nonstates),daeOut(ode=ode_out(states[...]+nonstates["controls",...]+nonstates["p",...]+nonstates["variables",...]+nonstates[...][3:])[0]))
   ode.init()
   
   intg=explicitRK(ode,1,4,integration_intervals)
@@ -247,9 +248,9 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integratio
 
   for i in syms["v"]:
     hs = str(hash(i))
-    lbx[hs] = i.lb
-    ubx[hs] = i.ub
-    x0[hs]  = i.init
+    lbx["V",hs] = i.lb
+    ubx["V",hs] = i.ub
+    x0["V",hs]  = i.init
     
   for j in "xu":
     for i in syms[j]:
@@ -303,7 +304,7 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integratio
   opt = X(solver.output("x"))
   
   # Extract solutions
-  for i in syms["v"]: i.sol = opt[str(hash(i))]
+  for i in syms["v"]: i.sol = opt["V",str(hash(i))]
   for i in syms["x"]: i.sol = opt["X",:,str(hash(i))]
   for i in syms["u"]: i.sol = opt["U",:,str(hash(i))]    
     
