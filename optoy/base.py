@@ -104,3 +104,37 @@ def get_primitives(el):
 
   return syms
 
+class OptimizationContinousVariable(OptimizationObject): 
+  """
+    Create a decision variable with time dependance
+    
+    Parameters
+    -------------------
+    
+    shape: integer or (integer,integer)
+      Matrix shape of the symbol
+    
+    name: string
+      A name for the symbol to be used in printing.
+      Not required to be unique
+ 
+    lb: number
+      Lower bound on the decision variable
+      May also be set after initialization as 'x.lb = number'
+
+    ub: number
+      Upper bound on the decision variable
+      May also be set after initialization as 'x.ub = number'
+      
+    init: number
+      Initial guess for the optimization solver
+      May also be set after initialization as 'x.init = number'
+      
+  """ 
+  def __init__(self,shape=1,lb=-inf,ub=inf,name="x",init=0):
+    self.lb, self.ub, self.init, self.name = lb, ub, init, name
+    self.create(shape,name)
+    self.start = MX.sym("%s(start)" % name,self.sparsity())
+    self.end = MX.sym("%s(end)" % name,self.sparsity())
+    self.lim_mapping[hash(self.start)] = self
+    self.lim_mapping[hash(self.end)] = self

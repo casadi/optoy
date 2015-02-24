@@ -82,3 +82,23 @@ def test_4():
 
   assert abs(T.sol-5.1479130912039)<1e-7
 
+def test_5():
+  t = time()
+  p = state(2,init=vertcat([3*sin(2*pi/4*t),3*cos(2*pi/4*t)]))
+  v = state(2)
+
+  u = control(2)
+
+  p.dot = v
+  v.dot = -10*(p-u)-v*sqrt(sum_square(v)+1)
+
+  hyper = [  (vertcat([1,1]),   vertcat([0,0]),   4),
+             (vertcat([0.5,2]), vertcat([1,0.5]), 4)]
+
+  h = [ sumAll(((p-pref)/s)**n)>=1 for s,pref,n in hyper]
+
+  T = var(lb=0,init=4)
+
+  ocp(T,h+[p.start[0]==0],regularize=[0.1*u/sqrt(2)],N=20,T=T,verbose=True,periodic=True,integration_intervals=2)
+
+  assert abs(T.sol-1.3742639155424)<1e-7

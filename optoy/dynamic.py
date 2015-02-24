@@ -24,40 +24,30 @@
 
 from static import *
 
-class OptimizationContinousVariable(OptimizationObject): 
+class OptimizationTime(OptimizationObject):
   """
-    Create a decision variable with time dependance
-    
-    Parameters
-    -------------------
-    
-    shape: integer or (integer,integer)
-      Matrix shape of the symbol
-    
-    name: string
-      A name for the symbol to be used in printing.
-      Not required to be unique
- 
-    lb: number
-      Lower bound on the decision variable
-      May also be set after initialization as 'x.lb = number'
+     time
+  """
+  shorthand = "t"
+  mapping = {}
 
-    ub: number
-      Upper bound on the decision variable
-      May also be set after initialization as 'x.ub = number'
-      
-    init: number
-      Initial guess for the optimization solver
-      May also be set after initialization as 'x.init = number'
-      
-  """ 
-  def __init__(self,shape=1,lb=-inf,ub=inf,name="x",init=0):
-    self.lb, self.ub, self.init, self.name = lb, ub, init, name
-    self.create(shape,name)
-    self.start = MX.sym("%s(start)" % name,self.sparsity())
-    self.end = MX.sym("%s(end)" % name,self.sparsity())
-    self.lim_mapping[hash(self.start)] = self
-    self.lim_mapping[hash(self.end)] = self
+  def __init__(self):
+    self.create(1,"t")
+
+timebase = OptimizationTime()
+
+def time():
+  return timebase
+
+def value_time(e,t):
+  try:
+    return DMatrix(e)
+  except:
+    f = MXFunction(getSymbols(e),[e])    
+    f.init()
+    f.setInput(t)
+    f.evaluate()
+    return f.getOutput()
 
 class OptimizationState(OptimizationContinousVariable):
   """
@@ -142,7 +132,7 @@ class OptimizationControl(OptimizationContinousVariable):
     if hash(v) in cl.lim_mapping: newvars.update(set(getSymbols(cl.lim_mapping[hash(v)])))
     return newvars
 
-def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False):
+def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integration_intervals=1,exact_hessian=True):
   """
 
    Miminimizes an objective function subject to a list of constraints
@@ -201,7 +191,7 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False):
   ode = MXFunction(daeIn(x=states,p=nonstates),daeOut(ode=ode_out(states[...]+nonstates["controls",...]+nonstates["p",...]+nonstates[...][2:])[0]))
   ode.init()
   
-  intg=explicitRK(ode,1,4)
+  intg=explicitRK(ode,1,4,integration_intervals)
 
   h_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"],[a for a in gl_pure if dependsOn(a,syms["x"]+syms["u"])])
   g_out = MXFunction(syms["p"]+syms["v"]+lims,[a for a in gl_pure if not dependsOn(a,syms["x"]+syms["u"])])
@@ -231,6 +221,7 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False):
 
   # Allocate an ipopt solver
   solver = NlpSolver("ipopt",nlp)
+  solver.setOption("hessian_approximation","exact" if exact_hessian else "limited-memory")
   if not verbose:
     solver.setOption("print_time",False)
     solver.setOption("print_level",0)
@@ -253,8 +244,10 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False):
       hs = str(hash(i))
       lbx[j.capitalize(),:,hs] = i.lb
       ubx[j.capitalize(),:,hs] = i.ub
-      x0[j.capitalize(),:,hs]  = i.init
-    
+      for k in range(N+1):
+        if k==N and j=="u": continue
+        x0[j.capitalize(),k,hs]  = value_time(i.init,t=(k+0.0)*T.init/N)
+  
   # Set parameter values
   par = P(solver.input("p"))
   
