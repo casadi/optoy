@@ -56,4 +56,4 @@ Dynamic optimization
     plot(u.sol)
     show()
 
-Full documentation: https://readthedocs.org/projects/optoy/
+Full documentation: http://optoy.readthedocs.org/en/latest/
