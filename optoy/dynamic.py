@@ -142,7 +142,7 @@ class OptimizationControl(OptimizationContinousVariable):
     if hash(v) in cl.lim_mapping: newvars.update(set(getSymbols(cl.lim_mapping[hash(v)])))
     return newvars
 
-def ocp(f,gl=[],verbose=False,N=20,T=1.0):
+def ocp(f,gl=[],verbose=False,N=20,T=1.0,periodic=False):
   """
 
    Miminimizes an objective function subject to a list of constraints
@@ -152,6 +152,7 @@ def ocp(f,gl=[],verbose=False,N=20,T=1.0):
     
     N:   number of control intervals
     T:   time horizon
+    periodic:  indicate whether the problem is periodic
         
     f:    symbolic expression
        objective function
@@ -214,7 +215,8 @@ def ocp(f,gl=[],verbose=False,N=20,T=1.0):
   G = struct_MX(
     [entry(str(i),expr=g) for i,g in enumerate(g_out(Pw+Lims))] + 
     [entry("path",expr=[ h_out(X["X",k,...]+X["U",k,...]+Pw) for k in range(N)]),
-     entry("shooting",expr=[ X["X",k+1] - intg(integratorIn(x0=X["X",k],p=veccat([X["U",k]]+Pw)))[0] for k in range(N)])]
+     entry("shooting",expr=[ X["X",k+1] - intg(integratorIn(x0=X["X",k],p=veccat([X["U",k]]+Pw)))[0] for k in range(N)])] +
+    ([entry("periodic",expr=[ X["X",-1]-X["X",0] ])] if periodic else [])
   )
   
   nlp = MXFunction(nlpIn(x=X,p=P),nlpOut(f=f_out(Pw+Lims)[0],g=G))
@@ -275,6 +277,9 @@ def ocp(f,gl=[],verbose=False,N=20,T=1.0):
       ubg["path",:,i] = 0
   
   lbg["shooting",:] = ubg["shooting",:] = 0
+
+  if periodic:
+    lbg["periodic"] = ubg["periodic"] = 0
 
   # Solve the problem numerically
   solver.evaluate()
