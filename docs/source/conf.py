@@ -28,7 +28,7 @@ subprocess.Popen("ln -s python-casadi-2.2.0/lib/libcasadi.so libcasadi.so.2.3",s
 subprocess.Popen("pwd",shell=True).wait()
 subprocess.Popen("ls",shell=True).wait()
 
-os.environ["LD_LIBRARY_PATH"] = os.environ["LD_LIBRARY_PATH"]+":/home/docs/checkouts/readthedocs.org/user_builds/optoy/checkouts/latest/docs/source/"
+os.environ["LD_LIBRARY_PATH"] = ":/home/docs/checkouts/readthedocs.org/user_builds/optoy/checkouts/latest/docs/source/"
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
