@@ -149,7 +149,12 @@ class ProbabilityFormulation(FormulationExtender):
 
     Qs = [ mul([c,Sigma_w,c.T]) for c in Cs ]
     
-    dple = DpleSolver("slicot",[i.sparsity() for i in As],[i.sparsity() for i in Qs])
+    solver = "slicot"
+    if not DpleSolver.hasPlugin(solver):
+      print "Warning. Slicot plugin not found. You may see degraded performance"
+      solver = "simple"
+
+    dple = DpleSolver(solver,[i.sparsity() for i in As],[i.sparsity() for i in Qs])
     dple.setOption("linear_solver","csparse")
     dple.init()
     Ps = horzsplit(dple(a=horzcat(As),v=horzcat(Qs))[0],states.size)
