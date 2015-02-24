@@ -49,6 +49,15 @@ def value_time(e,t):
     f.evaluate()
     return f.getOutput()
 
+def try_expand(f):
+  if not f.isInit(): f.init()
+  try:
+    r = SXFunction(f)
+    r.init()
+    return r
+  except:
+    return f
+
 class OptimizationState(OptimizationContinousVariable):
   """
     Create a state variable
@@ -192,6 +201,7 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integratio
   ode.init()
   
   intg=explicitRK(ode,1,4,integration_intervals)
+  intg = try_expand(intg)
 
   h_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"],[a for a in gl_pure if dependsOn(a,syms["x"]+syms["u"])])
   g_out = MXFunction(syms["p"]+syms["v"]+lims,[a for a in gl_pure if not dependsOn(a,syms["x"]+syms["u"])])
