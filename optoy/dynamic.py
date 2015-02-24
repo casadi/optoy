@@ -212,6 +212,8 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integratio
   for i in [h_out, g_out, f_out, intg, reg_out]: i.init()
     
   Pw = P[...]+X[...][:len(syms["v"])]
+  if dependsOn(f,syms["x"]):
+    raise Exception("Objective function cannot contain pure state variables. Try adding .start or .end")
 
   Lims = X["X",0,...]+X["X",-1,...]+X["U",0,...]+X["U",-1,...]
   
