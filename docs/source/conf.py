@@ -22,7 +22,7 @@ import subprocess
 with open('../../optoy/conf.py') as f:
   exec(f.read())
 
-subprocess.Popen("wget -O http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi-2.2.0.tar.gz",shell=True).wait()
+subprocess.Popen("wget http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi-2.2.0.tar.gz",shell=True).wait()
 subprocess.Popen("tar -xvf python-casadi-2.2.0.tar.gz",shell=True).wait()
 subprocess.Popen("ln -s python-casadi-2.2.0/lib/libcasadi.so libcasadi.so.2.3",shell=True).wait()
 subprocess.Popen("pwd",shell=True).wait()
