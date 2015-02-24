@@ -15,36 +15,7 @@
 import sys
 import os
 
-class Mock(object):
-  def __init__(self,*args,**kwargs):
-    pass
-    
-  def __repr__(self):
-    return "None"
-
-  @classmethod
-  def __getattr__(cls, name):
-    return Mock()
-
-  @classmethod
-  def __getitem__(cls, name):
-    return Mock()
-
-  def dummy1(cls):
-    return Mock()
-    
-  __neg__ = dummy1
-
-  __all__ = []
-  __path__ = []
-  
-Mock.MX = Mock
-
-MOCK_MODULES = ['casadi','casadi.tools']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
 # We will have to wait for Sphinx 1.3 to use:
-# autodoc_mock_imports = ['casadi']
 
 with open('../../optoy/conf.py') as f:
   exec(f.read())
