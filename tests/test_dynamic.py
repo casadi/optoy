@@ -102,3 +102,34 @@ def test_5():
   ocp(T,h+[p.start[0]==0],regularize=[0.1*u/sqrt(2)],N=20,T=T,verbose=True,periodic=True,integration_intervals=2)
 
   assert abs(T.sol-1.3742639155424)<1e-7
+
+def test_6():
+  t = time()
+  p = state(2,init=vertcat([3*sin(2*pi/4*t),3*cos(2*pi/4*t)]))
+  v = state(2)
+
+  u = control(2)
+
+  w = dist(2,cov=50*DMatrix([[1,0],[0,1]]))
+
+  p.dot = v
+  v.dot = -10*(p-u)-v*sqrt(sum_square(v)+1)+w
+
+  hyper = [  (vertcat([1,1]),   vertcat([0,0]),   4),
+             (vertcat([0.5,2]), vertcat([1,0.5]), 4)]
+
+  h = [ Prob(sumAll(((p-pref)/s)**n)>=1) for s,pref,n in hyper]
+
+  T = var(lb=0,init=4)
+
+  ocp(T,h+[p.start[0]==0],regularize=[0.1*u/sqrt(2)],N=20,T=T,verbose=True,periodic=True,integration_intervals=2)
+  
+  Sigma = cov(p)
+  assert len(Sigma)==20
+  assert Sigma[0].shape==(2,2)
+
+  assert abs(Sigma[0][0,0]-0.017781237199029)<1e-7
+  assert abs(Sigma[0][1,0]-Sigma[0][0,1])<1e-7
+
+  assert abs(T.sol-1.3958353362253)<1e-7
+
