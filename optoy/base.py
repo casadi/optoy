@@ -58,7 +58,7 @@ def get_subclasses(c):
       yield j
 
 
-def get_primitives(el):
+def get_primitives(el,dep=True):
   """
     Out of a list of expression, retrieves all primitive expressions
 
@@ -74,16 +74,17 @@ def get_primitives(el):
   MX.__eq__ = cmpbyhash
 
   # Get an exhausive list of all casadi symbols that make up f and gl
-  vars = set(getSymbols(veccat(el)))
+  vars = set(getSymbols(veccat(el) if isinstance(el,list) else el))
   
-  while True:
-    newvars = set() 
-    for v in vars:
-      for cl in get_subclasses(OptimizationObject):
-        newvars.update(cl.getDependent(v))
-    v0 = len(vars)
-    vars.update(newvars)
-    if v0==len(vars): break
+  if dep:
+    while True:
+      newvars = set() 
+      for v in vars:
+        for cl in get_subclasses(OptimizationObject):
+          newvars.update(cl.getDependent(v))
+      v0 = len(vars)
+      vars.update(newvars)
+      if v0==len(vars): break
 
   # Find out which OptimizationParameter and 
   # OptimizationVariable objects correspond to those casadi symbols
@@ -138,3 +139,58 @@ class OptimizationContinousVariable(OptimizationObject):
     self.end = MX.sym("%s(end)" % name,self.sparsity())
     self.lim_mapping[hash(self.start)] = self
     self.lim_mapping[hash(self.end)] = self
+
+def value(e,nums={}):
+  """
+  Evaluates the expression numerically
+  
+   Parameters
+   -------------------
+     e: expression to be evaluated
+     
+     nums: optional dictionary denoting the values of Variables
+       if not supplied, the optimal values are assumed
+     
+  """
+  if isinstance(e,list):
+    return [value(i) for i in e]
+  if e in OptimizationContext.eval_cache:
+    f,xp = OptimizationContext.eval_cache[e]
+  else:
+    
+    syms = get_primitives(e,dep=False)
+    xp = []
+    for k in sorted(syms.keys()):
+      xp+=syms[k]
+
+    f = MXFunction(xp,[e])
+    f.init()
+    OptimizationContext.eval_cache[e] = (f,xp)
+
+  N = Inf
+  for i in range(len(xp)):
+    x = xp[i]
+    s = nums.get(x,x.sol)
+    if isinstance(s,list):
+      if len(s)<N: N = len(s)
+  
+  if N>0 and N!=Inf:
+    l = []
+    for k in range(N):
+      for i in range(len(xp)):
+        x = xp[i]
+        s = nums.get(x,x.sol)
+        if isinstance(s,list):
+          f.setInput(s[k],i)
+        else:
+          f.setInput(s,i)
+      f.evaluate()
+      l.append(f.getOutput())
+    return l
+  else:
+    for i in range(len(xp)):
+      f.setInput(nums.get(xp[i],xp[i].sol),i)
+    f.evaluate()
+    return f.getOutput()    
+
+
