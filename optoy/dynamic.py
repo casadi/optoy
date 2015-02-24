@@ -142,7 +142,7 @@ class OptimizationControl(OptimizationContinousVariable):
     if hash(v) in cl.lim_mapping: newvars.update(set(getSymbols(cl.lim_mapping[hash(v)])))
     return newvars
 
-def ocp(f,gl=[],verbose=False,N=20,T=1.0,periodic=False):
+def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False):
   """
 
    Miminimizes an objective function subject to a list of constraints
@@ -153,6 +153,7 @@ def ocp(f,gl=[],verbose=False,N=20,T=1.0,periodic=False):
     N:   number of control intervals
     T:   time horizon
     periodic:  indicate whether the problem is periodic
+    regularize:   list of symbolic vector expressions
         
     f:    symbolic expression
        objective function
@@ -205,10 +206,13 @@ def ocp(f,gl=[],verbose=False,N=20,T=1.0,periodic=False):
   h_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"],[a for a in gl_pure if dependsOn(a,syms["x"]+syms["u"])])
   g_out = MXFunction(syms["p"]+syms["v"]+lims,[a for a in gl_pure if not dependsOn(a,syms["x"]+syms["u"])])
   f_out = MXFunction(syms["p"]+syms["v"]+lims,[f])
-  
-  for i in [h_out, g_out, f_out, intg]:i.init()
-  
+  reg_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"],[sumAll(vertcat([ inner_prod(i,i) for i in regularize]))*T/N])
+  reg_out.setOption("name","reg_out")
+
+  for i in [h_out, g_out, f_out, intg, reg_out]: i.init()
+    
   Pw = P[...]+X[...][:len(syms["v"])]
+
   Lims = X["X",0,...]+X["X",-1,...]+X["U",0,...]+X["U",-1,...]
   
   # Construct NLP constraints
@@ -218,8 +222,10 @@ def ocp(f,gl=[],verbose=False,N=20,T=1.0,periodic=False):
      entry("shooting",expr=[ X["X",k+1] - intg(integratorIn(x0=X["X",k],p=veccat([X["U",k]]+Pw)))[0] for k in range(N)])] +
     ([entry("periodic",expr=[ X["X",-1]-X["X",0] ])] if periodic else [])
   )
+
+  reg = sumAll(vertcat([reg_out(X["X",k,...]+X["U",k,...]+Pw)[0] for k in range(N)]))
   
-  nlp = MXFunction(nlpIn(x=X,p=P),nlpOut(f=f_out(Pw+Lims)[0],g=G))
+  nlp = MXFunction(nlpIn(x=X,p=P),nlpOut(f=f_out(Pw+Lims)[0]+ reg,g=G))
   nlp.setOption("name","nlp")
   nlp.init()
 

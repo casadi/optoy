@@ -62,3 +62,23 @@ def test_3():
 
   assert abs(T.sol-3.7292171609519)<1e-7
 
+def test_4():
+    
+  xy = state(2)
+  u = control()
+  T = var(lb=0,init=10)
+  x = xy[0]
+  y = xy[1]
+
+  xy.dot = vertcat([(1-y**2)*x-y+u,x])
+
+  ocp(T,[u>=-1,u<=1,xy.start==vertcat([1,0])],regularize=[10*(x**2+y**2)],T=T,N=20,verbose=True,periodic=True)
+
+  assert abs(xy.sol[0][0]-1)<1e-7
+  assert abs(xy.sol[0][1]-0)<1e-7
+  assert abs(xy.sol[-1][0]-1)<1e-7
+  assert abs(xy.sol[-1][1]-0)<1e-7
+    
+
+  assert abs(T.sol-5.1479130912039)<1e-7
+
