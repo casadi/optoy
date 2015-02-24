@@ -194,3 +194,5 @@ def value(e,nums={}):
     return f.getOutput()    
 
 
+class FormulationExtender(OptimizationObject):
+  mapping = {}

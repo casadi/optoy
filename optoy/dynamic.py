@@ -141,7 +141,7 @@ class OptimizationControl(OptimizationContinousVariable):
     if hash(v) in cl.lim_mapping: newvars.update(set(getSymbols(cl.lim_mapping[hash(v)])))
     return newvars
 
-def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integration_intervals=1,exact_hessian=True):
+def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integration_intervals=1,exact_hessian=None):
   """
 
    Miminimizes an objective function subject to a list of constraints
@@ -190,29 +190,69 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integratio
   controls  = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms["u"]])
   variables = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms["v"]])
 
+  # Identify extensions if applicable
+  ext_symnames = sorted(set(syms.keys()) - {"x","u","v","p","T"})
+
+  # Create structures for extension variables
+  ext_structures = dict([ (k, struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms[k]])) for k in  ext_symnames])
+
+  # Compose a list of extension symbols
+  ext_syms = []
+  for k in ext_symnames: ext_syms += syms[k]
+
+  # Identify extension classes
+  ext_cl = [i.__class__ for i in syms["T"] ][:1]
+
+  # Compose the NLP variables
   X = struct_symMX([entry("V",struct=variables),entry("X",struct=states,repeat=N+1),entry("U",struct=controls,repeat=N)])
   P = struct_symMX([entry(str(hash(i)),shape=i.sparsity()) for i in syms["p"]])
   
-  ode_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"],[((T+0.0)/N)*vertcat([i.dot for i in syms["x"]])])
+  # Create the ode function
+  ode_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"]+ext_syms,[((T+0.0)/N)*vertcat([i.dot for i in syms["x"]])])
+  ode_out.setOption("name","ode_out")
   ode_out.init()
   
-  nonstates = struct_symMX([entry("controls",struct=controls),entry("p",struct=P),entry("variables",struct=variables)])
-  
-  ode = MXFunction(daeIn(x=states,p=nonstates),daeOut(ode=ode_out(states[...]+nonstates["controls",...]+nonstates["p",...]+nonstates["variables",...]+nonstates[...][3:])[0]))
+  # Group together all symbols that are constant over an integration interval
+  nonstates = struct_symMX([entry("u",struct=controls),entry("p",struct=P),entry("v",struct=variables)] + [entry(k,struct=ext_structures[k]) for k in ext_symnames])
+
+  # Compose arguments made of states/nonstates parts
+  ode_out_ins = states[...]+nonstates["u",...]+nonstates["p",...]+nonstates["v",...]
+  for k in ext_symnames: ode_out_ins += nonstates[k,...]
+
+  # Change the ode function signature to accept states/nonstates
+  ode = MXFunction(daeIn(x=states,p=nonstates),daeOut(ode=ode_out(ode_out_ins)[0]))
   ode.init()
   
+  # Create the integrator
   intg=explicitRK(ode,1,4,integration_intervals)
   intg = try_expand(intg)
 
-  h_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"],[a for a in gl_pure if dependsOn(a,syms["x"]+syms["u"])])
-  g_out = MXFunction(syms["p"]+syms["v"]+lims,[a for a in gl_pure if not dependsOn(a,syms["x"]+syms["u"])])
-  f_out = MXFunction(syms["p"]+syms["v"]+lims,[f])
-  reg_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"],[sumAll(vertcat([ inner_prod(i,i) for i in regularize]))*T/N])
-  reg_out.setOption("name","reg_out")
+  Pw0 = P[...]+X["V",...]+[None if i.nlp_var else DMatrix.zeros(i.shape) for i in ext_syms]
 
-  for i in [h_out, g_out, f_out, intg, reg_out]: i.init()
-    
-  Pw = P[...]+X[...][:len(syms["v"])]
+  # Some extensions may wish to introduce new constraints
+  ext_constr = []
+  for cl in ext_cl:
+    ext_constr_e, gl, gl_pure,gl_equality = cl.process(intg,syms,N,T,X,P,Pw0,states,gl,gl_pure,gl_equality)
+    ext_constr += ext_constr_e
+
+  # Set path constraints bounds
+  h_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"]+ext_syms,[a for a in gl_pure if dependsOn(a,syms["x"]+syms["u"]) ])
+  h_out.setOption("name","h_out")
+  g_out = MXFunction(syms["p"]+syms["v"]+ext_syms+lims,[a for a in gl_pure if not dependsOn(a,syms["x"]+syms["u"]) ])
+  g_out.setOption("name","g_out")
+  f_out = MXFunction(syms["p"]+syms["v"]+ext_syms+lims,[f])
+  f_out.setOption("name","f_out")
+  reg_out = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"]+ext_syms,[sumAll(vertcat([ inner_prod(i,i) for i in regularize]))*T/N])
+  reg_out.setOption("name","reg_out")
+  
+  # Expand if possible
+  h_out   = try_expand(h_out)
+  g_out   = try_expand(g_out)
+  f_out   = try_expand(f_out)
+  reg_out = try_expand(reg_out)
+
+
+  # Diagnostics
   if dependsOn(f,syms["x"]):
     raise Exception("Objective function cannot contain pure state variables. Try adding .start or .end")
 
@@ -220,17 +260,28 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integratio
   
   # Construct NLP constraints
   G = struct_MX(
-    [entry(str(i),expr=g) for i,g in enumerate(g_out(Pw+Lims))] + 
-    [entry("path",expr=[ h_out(X["X",k,...]+X["U",k,...]+Pw) for k in range(N)]),
-     entry("shooting",expr=[ X["X",k+1] - intg(integratorIn(x0=X["X",k],p=veccat([X["U",k]]+Pw)))[0] for k in range(N)])] +
+    [entry(str(i),expr=g) for i,g in enumerate(g_out(Pw0+Lims))] + 
+    [entry("path",expr=[ h_out(X["X",k,...]+X["U",k,...]+Pw0) for k in range(N)])]+
+    ext_constr+
+    [entry("shooting",expr=[ X["X",k+1] - intg(x0=X["X",k],p=veccat([X["U",k]]+Pw0))[0] for k in range(N)])] +
     ([entry("periodic",expr=[ X["X",-1]-X["X",0] ])] if periodic else [])
   )
 
-  reg = sumAll(vertcat([reg_out(X["X",k,...]+X["U",k,...]+Pw)[0] for k in range(N)]))
-  
-  nlp = MXFunction(nlpIn(x=X,p=P),nlpOut(f=f_out(Pw+Lims)[0]+ reg,g=G))
+  # Build a regularization expression
+  # We dont use a helper state because we wisth to directly influence the objective
+  reg = sumAll(vertcat([reg_out(X["X",k,...]+X["U",k,...]+Pw0)[0] for k in range(N)]))
+
+  # Construct the nlp
+  nlp = MXFunction(nlpIn(x=X,p=P),nlpOut(f=f_out(Pw0+Lims)[0]+ reg,g=G))
   nlp.setOption("name","nlp")
   nlp.init()
+
+  # Some extensions may wish to set default options
+  for cl in ext_cl:
+    exact_hessian = cl.setOptions(exact_hessian)
+
+  # If there were no objections, default to True
+  if exact_hessian is None: exact_hessian = True
 
   # Allocate an ipopt solver
   solver = NlpSolver("ipopt",nlp)
@@ -288,6 +339,10 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integratio
       lbg["path",:,i] = -Inf
       ubg["path",:,i] = 0
   
+  # Some extensions may wish to set bounds
+  for cl in ext_cl:
+    cl.setBounds(lbx,ubx,x0,lbg,ubg)
+
   lbg["shooting",:] = ubg["shooting",:] = 0
 
   if periodic:
@@ -307,6 +362,10 @@ def ocp(f,gl=[],regularize=[],verbose=False,N=20,T=1.0,periodic=False,integratio
   for i in syms["v"]: i.sol = opt["V",str(hash(i))]
   for i in syms["x"]: i.sol = opt["X",:,str(hash(i))]
   for i in syms["u"]: i.sol = opt["U",:,str(hash(i))]    
-    
+
+  # Some extensions may wish to extract more solutions
+  for cl in ext_cl:
+    cl.extractSol(solver)
+
   # Return optimal cost
   return float(solver.getOutput("f"))

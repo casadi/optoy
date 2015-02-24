@@ -13,3 +13,4 @@ from static import OptimizationVariable as var, OptimizationParameter as par, \
 from dynamic import OptimizationState as state, OptimizationControl as control, ocp,\
                     time
 
+from extensions.robustness import OptimizationDisturbance as dist, Prob, Sigma as cov
