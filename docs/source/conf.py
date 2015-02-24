@@ -15,10 +15,17 @@
 import sys
 import os
 
+import subprocess
+
 # We will have to wait for Sphinx 1.3 to use:
 
 with open('../../optoy/conf.py') as f:
   exec(f.read())
+
+suprocess.Popen("wget -O casadi.deb http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi_2.2.0-2_amd64.deb",shell=True).wait()
+subprocess.Popen("sudo dpkg -i casadi.deb",shell=True).wait()
+
+#os.environ["LD_LIBRARY_PATH"] = os.environ["LD_LIBRARY_PATH"]+":"+ 
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
