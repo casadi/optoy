@@ -22,10 +22,13 @@ import subprocess
 with open('../../optoy/conf.py') as f:
   exec(f.read())
 
-subprocess.Popen("wget -O casadi.deb http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi_2.2.0-2_amd64.deb",shell=True).wait()
-subprocess.Popen("sudo dpkg -i casadi.deb",shell=True).wait()
+subprocess.Popen("wget -O http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi-2.2.0.tar.gz",shell=True).wait()
+subprocess.Popen("tar -xvf python-casadi-2.2.0.tar.gz",shell=True).wait()
+subprocess.Popen("ln -s python-casadi-2.2.0/lib/libcasadi.so libcasadi.so.2.3",shell=True).wait()
+subprocess.Popen("pwd",shell=True).wait()
+subprocess.Popen("ls",shell=True).wait()
 
-#os.environ["LD_LIBRARY_PATH"] = os.environ["LD_LIBRARY_PATH"]+":"+ 
+os.environ["LD_LIBRARY_PATH"] = os.environ["LD_LIBRARY_PATH"]+":/home/docs/checkouts/readthedocs.org/user_builds/optoy/checkouts/latest/docs/source/"
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
