@@ -39,47 +39,43 @@
         <ul></ul>
       </nav>
       <section>
-        <h1>
-<a name="optoy" class="anchor" href="#optoy"><span class="octicon octicon-link"></span></a>optoy</h1>
-
-<p>Because optimization is fun!</p>
-
-<p>Optoy combines the power of <a href="http://casadi.org">casadi</a> with a very compact Python user interface.
-Start optimizing in minutes...</p>
+        <p>Optoy combines the power of <a href="http://casadi.org">casadi</a> with a very compact Python user interface.
+Start optimizing in minutes...
+Installation: <code>pip install git+git://github.com/casadi/optoy.git</code></p>
 
 <h1>
-<a name="static-optimization" class="anchor" href="#static-optimization"><span class="octicon octicon-link"></span></a>Static optimization</h1>
+<a id="static-optimization" class="anchor" href="#static-optimization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Static optimization</h1>
 
-<div class="highlight highlight-python"><pre><span class="kn">from</span> <span class="nn">optoy</span> <span class="kn">import</span> <span class="o">*</span>
+<div class="highlight highlight-python"><pre><span class="pl-k">from</span> optoy <span class="pl-k">import</span> <span class="pl-k">*</span>
 
-<span class="n">x</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
-<span class="n">y</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
-<span class="k">print</span> <span class="s">"cost = "</span><span class="p">,</span> <span class="n">minimize</span><span class="p">((</span><span class="mi">1</span><span class="o">-</span><span class="n">x</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,[</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="o">+</span><span class="n">y</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">])</span>
-<span class="k">print</span> <span class="s">"sol = "</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">sol</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">sol</span>
-</pre></div>
+x <span class="pl-k">=</span> var()
+y <span class="pl-k">=</span> var()
+<span class="pl-k">print</span> <span class="pl-s1"><span class="pl-pds">"</span>cost = <span class="pl-pds">"</span></span>, minimize((<span class="pl-c1">1</span><span class="pl-k">-</span>x)<span class="pl-k">**</span><span class="pl-c1">2</span><span class="pl-k">+</span><span class="pl-c1">100</span><span class="pl-k">*</span>(y<span class="pl-k">-</span>x<span class="pl-k">**</span><span class="pl-c1">2</span>)<span class="pl-k">**</span><span class="pl-c1">2</span>,[x<span class="pl-k">**</span><span class="pl-c1">2</span><span class="pl-k">+</span>y<span class="pl-k">**</span><span class="pl-c1">2</span><span class="pl-k">&lt;=</span><span class="pl-c1">1</span>, x<span class="pl-k">+</span>y<span class="pl-k">&gt;=</span><span class="pl-c1">0</span>])
+<span class="pl-k">print</span> <span class="pl-s1"><span class="pl-pds">"</span>sol = <span class="pl-pds">"</span></span>, x.sol, y.sol</pre></div>
 
 <h1>
-<a name="dynamic-optimization" class="anchor" href="#dynamic-optimization"><span class="octicon octicon-link"></span></a>Dynamic optimization</h1>
+<a id="dynamic-optimization" class="anchor" href="#dynamic-optimization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dynamic optimization</h1>
 
-<div class="highlight highlight-python"><pre><span class="kn">from</span> <span class="nn">optoy</span> <span class="kn">import</span> <span class="o">*</span>
+<div class="highlight highlight-python"><pre><span class="pl-k">from</span> optoy <span class="pl-k">import</span> <span class="pl-k">*</span>
 
-<span class="n">x</span> <span class="o">=</span> <span class="n">state</span><span class="p">()</span>
-<span class="n">y</span> <span class="o">=</span> <span class="n">state</span><span class="p">()</span>
-<span class="n">q</span> <span class="o">=</span> <span class="n">state</span><span class="p">()</span>
-<span class="n">u</span> <span class="o">=</span> <span class="n">control</span><span class="p">()</span>
-<span class="n">T</span> <span class="o">=</span> <span class="n">var</span><span class="p">(</span><span class="n">lb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">init</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-<span class="n">x</span><span class="o">.</span><span class="n">dot</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">x</span><span class="o">-</span><span class="n">y</span><span class="o">+</span><span class="n">u</span>
-<span class="n">y</span><span class="o">.</span><span class="n">dot</span> <span class="o">=</span> <span class="n">x</span>
-<span class="n">q</span><span class="o">.</span><span class="n">dot</span> <span class="o">=</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">y</span><span class="o">**</span><span class="mi">2</span>
+x <span class="pl-k">=</span> state()
+y <span class="pl-k">=</span> state()
+q <span class="pl-k">=</span> state()
+u <span class="pl-k">=</span> control()
+T <span class="pl-k">=</span> var(<span class="pl-vpf">lb</span><span class="pl-k">=</span><span class="pl-c1">0</span>,<span class="pl-vpf">init</span><span class="pl-k">=</span><span class="pl-c1">10</span>)
+x.dot <span class="pl-k">=</span> (<span class="pl-c1">1</span><span class="pl-k">-</span>y<span class="pl-k">**</span><span class="pl-c1">2</span>)<span class="pl-k">*</span>x<span class="pl-k">-</span>y<span class="pl-k">+</span>u
+y.dot <span class="pl-k">=</span> x
+q.dot <span class="pl-k">=</span> x<span class="pl-k">**</span><span class="pl-c1">2</span><span class="pl-k">+</span>y<span class="pl-k">**</span><span class="pl-c1">2</span>
 
-<span class="n">ocp</span><span class="p">(</span><span class="n">T</span><span class="p">,[</span><span class="n">u</span><span class="o">&gt;=-</span><span class="mi">1</span><span class="p">,</span><span class="n">u</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">,</span><span class="n">q</span><span class="o">.</span><span class="n">start</span><span class="o">==</span><span class="mi">0</span><span class="p">,</span><span class="n">x</span><span class="o">.</span><span class="n">start</span><span class="o">==</span><span class="mi">1</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">start</span><span class="o">==</span><span class="mi">0</span><span class="p">,</span><span class="n">x</span><span class="o">.</span><span class="n">end</span><span class="o">==</span><span class="mi">0</span><span class="p">,</span><span class="n">y</span><span class="o">.</span><span class="n">end</span><span class="o">==</span><span class="mi">0</span><span class="p">],</span><span class="n">T</span><span class="o">=</span><span class="n">T</span><span class="p">,</span><span class="n">N</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+ocp(T,[u<span class="pl-k">&gt;=</span><span class="pl-k">-</span><span class="pl-c1">1</span>,u<span class="pl-k">&lt;=</span><span class="pl-c1">1</span>,q.start<span class="pl-k">==</span><span class="pl-c1">0</span>,x.start<span class="pl-k">==</span><span class="pl-c1">1</span>,y.start<span class="pl-k">==</span><span class="pl-c1">0</span>,x.end<span class="pl-k">==</span><span class="pl-c1">0</span>,y.end<span class="pl-k">==</span><span class="pl-c1">0</span>],<span class="pl-vpf">T</span><span class="pl-k">=</span>T,<span class="pl-vpf">N</span><span class="pl-k">=</span><span class="pl-c1">20</span>)
 
-<span class="k">print</span> <span class="n">T</span><span class="o">.</span><span class="n">sol</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">sol</span>
-<span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">sol</span><span class="p">)</span>
-<span class="n">plot</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">sol</span><span class="p">)</span>
-<span class="n">plot</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">sol</span><span class="p">)</span>
-<span class="n">show</span><span class="p">()</span>
-</pre></div>
+<span class="pl-k">print</span> T.sol, x.sol
+plot(x.sol)
+plot(y.sol)
+plot(u.sol)
+show()</pre></div>
+
+<p>Full documentation: <a href="https://optoy.readthedocs.org/en/latest">https://optoy.readthedocs.org/en/latest</a></p>
       </section>
       <footer>
         <p>Project maintained by <a href="https://github.com/casadi">casadi</a></p>
