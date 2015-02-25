@@ -1,4 +1,3 @@
 http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi-2.2.0.tar.gz
 numpydoc
-pandadoc
 pypng
