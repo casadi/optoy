@@ -7,7 +7,7 @@ before_install:
   - sudo apt-get install -y libgfortran3 liblapack3gf python-numpy python-scipy python-matplotlib
   - "wget -O casadi.deb http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi_2.2.0-2_amd64.deb"
   - sudo dpkg -i casadi.deb
-  - pip install pytest-cov coveralls pypng
+  - pip install pytest-cov coveralls pypng ipython[notebook]
   - wget https://gist.githubusercontent.com/shoyer/7497853/raw/fbd4d82aef99468b11ccbff8c4b93351d611da13/ipnbdoctest.py
 
 install:
