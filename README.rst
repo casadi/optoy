@@ -51,18 +51,18 @@ Dynamic optimization
     y = state()
     q = state()
     u = control()
+    
     T = var(lb=0,init=10)
+    
     x.dot = (1-y**2)*x-y+u
     y.dot = x
     q.dot = x**2+y**2
 
     ocp(T,[u>=-1,u<=1,q.start==0,x.start==1,y.start==0,x.end==0,y.end==0],T=T,N=20)
-    
-    print T.sol, x.sol
+
     plot(x.sol)
     plot(y.sol)
     plot(u.sol)
-    show()
 
 .. image:: https://cloud.githubusercontent.com/assets/329032/6380987/2a6fec10-bd3e-11e4-81b9-3b047d6e7066.png
 
