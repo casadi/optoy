@@ -63,5 +63,7 @@ Dynamic optimization
     plot(y.sol)
     plot(u.sol)
     show()
+    
+![image](https://cloud.githubusercontent.com/assets/329032/6380987/2a6fec10-bd3e-11e4-81b9-3b047d6e7066.png)
 
 Get started with some `examples <http://nbviewer.ipython.org/github/casadi/optoy/tree/master/examples/>`_ or by reading the `API documentation <http://optoy.readthedocs.org/en/latest/optoy.html>`_ .
