@@ -208,9 +208,13 @@ class ProbabilityFormulation(FormulationExtender):
       exact_hessian = self.h_robust.getNumOutputs()==0
     return exact_hessian 
 
+
+
 def Prob(e):
   """ h <= 0
   """
+  from scipy.stats import norm
+
   if e.isOperation(OP_LE) or e.isOperation(OP_LT):
      h = e.getDep(0)-e.getDep(1)
   else:
@@ -218,45 +222,17 @@ def Prob(e):
 
   if not h.isScalar():
     raise Exception("Prob(e): expected scalar expression")
-  ret = h + ProbabilityFormulation(h.shape,h=h) <= 0
-  
-  return ret
-  #+ ProbabilityFormulation(h.shape)
-  
+  ret = (h + ProbabilityFormulation(h.shape,h=h)) <= 0
 
-  def g_mod(self,b):
-    print "rmod"
-    return (h - (1-b)*ProbabilityFormulation(h.shape)) >= 0
-  def l_mod(self,b):
-    print "lmod"
-    return (h + (1-b)*ProbabilityFormulation(h.shape)) <= 0
-  def e_mod(self,b):
-    print "emod"
-    return 0
 
-  #print dir(ret)
-  #print ret.__array__
-  #delattr(ret,'__array__')
-  #del ret.__array__
-  #ret.__array_priority__ = None
-  #ret.__array_wrap__ = None
-  import types
+  class Wrapper(MX):
 
-  ret.__eq__ = types.MethodType(e_mod,ret)
-  ret.__ge__ = types.MethodType(g_mod,ret)
-  ret.__gt__ = types.MethodType(g_mod,ret)
-  ret.__le__ = types.MethodType(l_mod,ret)
-  ret.__lt__ = types.MethodType(l_mod,ret)
-  ret.__rge__ = types.MethodType(l_mod,ret)
-  ret.__rgt__ = types.MethodType(l_mod,ret)
-  ret.__rle__ = types.MethodType(g_mod,ret)
-  ret.__rlt__ = types.MethodType(g_mod,ret)
+    def g_mod(self,b):
+      return (h - norm.ppf(b)*ProbabilityFormulation(h.shape,h=h)) >= 0
+    def l_mod(self,b):
+      return (h + norm.ppf(b)*ProbabilityFormulation(h.shape,h=h)) <= 0
+    
+    __lt__ = __le__ = l_mod
+    __gt__ = __ge__ = g_mod  
 
-  print dir(ret)
-
-  print ret.__le__
-
-  print "Prob:", ret
-  print ret>=0.5
-
-  return ret
+  return Wrapper(ret)

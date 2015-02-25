@@ -118,7 +118,7 @@ def test_6():
   hyper = [  (vertcat([1,1]),   vertcat([0,0]),   4),
              (vertcat([0.5,2]), vertcat([1,0.5]), 4)]
 
-  h = [ Prob(sumAll(((p-pref)/s)**n)>=1) for s,pref,n in hyper]
+  h = [ Prob(sumAll(((p-pref)/s)**n)>=1)<=0.8414 for s,pref,n in hyper]
 
   T = var(lb=0,init=4)
 
@@ -131,5 +131,5 @@ def test_6():
   assert abs(Sigma[0][0,0]-0.017781237199029)<1e-7
   assert abs(Sigma[0][1,0]-Sigma[0][0,1])<1e-7
 
-  assert abs(T.sol-1.3958353362253)<1e-7
+  assert abs(T.sol-1.3958486313565)<1e-7
 
