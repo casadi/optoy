@@ -52,7 +52,7 @@ class OptimizationVariable(OptimizationObject):
       
   """
   shorthand = "v"
-  mapping = {}
+  _mapping = {}
  
   def __init__(self,shape=1,lb=-inf,ub=inf,name="v",init=0):
     self.lb = lb
@@ -81,7 +81,7 @@ class OptimizationParameter(OptimizationObject):
 
   """
   shorthand = "p"
-  mapping = {}
+  _mapping = {}
 
   def __init__(self,shape=1,value=0,name="p"):
     self.value = value
@@ -117,15 +117,27 @@ def maximize(f,**kwargs):
 def minimize(f,gl=[],verbose=False):
   """
    
-   Miminimizes an objective function subject to a list of constraints
+   Minimizes an objective function subject to a list of constraints
    
-   Parameters
-   -------------------
+   The static package of optoy works with following standard NLP formulation:
    
-    f:    symbolic expression
-       objective function
+   .. math::
+      \\textrm{min}_{x} & f(x,p) \\
+           \\textrm{subject to}  & g(x,p)<=0 \\
+                                 & h(x,p)=0
+      :label: min
+
+    where :math:`x \in \mathbb{R}^n` are the decision variables, 
+    :math:`p \in \mathbb{R}^m` are problem parameters,
+    :math:`f` is the objective function, and
+    :math:`g` the inequality constraints, and
+    :math:`h` the equality constraints.
+
+   :param f: objective function
+   :type f: symbolic expression
        
-    gl:   list of constraints
+   :param gl: list of constraints (mixed equalities and inequalities)
+   :type gl: list of symbolic expressions.
        each constraint should have one of these form:
              * lhs<=rhs
              * lhs>=rhs
@@ -133,23 +145,19 @@ def minimize(f,gl=[],verbose=False):
              
              where lhs and rhs are expression
              
-    Returns
-    -------------------
-    
-    If numerical solution was succesful,
+    :returns: If numerical solution was succesful,
     returns cost at the optimal solution.
     Otherwise raises an exception.
     
-    Example
-    -------------------
-    
-    x = var()
-    y = var()
+    ..doctest::
 
-    cost = minimize((1-x)**2+100*(y-x**2)**2)
-    print "cost = ", cost
-    print "sol = ", x.sol, y.sol
-  
+       >>> x = var()
+       >>> y = var()
+       >>> cost = minimize((1-x)**2+100*(y-x**2)**2)
+       >>> print round(cost,8)
+       0.0
+       >>> print round(x.sol,8), round(y.sol,8)
+       1.0 1.0
   """
   
   if not isinstance(gl,list):

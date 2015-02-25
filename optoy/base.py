@@ -34,7 +34,7 @@ class OptimizationObject(MX):
   def create(self,shape,name):
     if not isinstance(shape,tuple): shape = (shape,) 
     MX.__init__(self,MX.sym(name,Sparsity.dense(*shape)))
-    self.mapping[hash(self)] = self
+    self._mapping[hash(self)] = self
     
   def __iter__(self):
     while True:
@@ -96,8 +96,8 @@ def get_primitives(el,dep=True):
       if hasattr(cl,"shorthand"):
         name = cl.shorthand
 
-        if hash(v) in cl.mapping:
-          syms[name].append(cl.mapping[hash(v)])
+        if hash(v) in cl._mapping:
+          syms[name].append(cl._mapping[hash(v)])
           categorized = True
     #if not categorized:
     #  raise Exception("Unknown symbol: " + str(v))
@@ -195,4 +195,4 @@ def value(e,nums={}):
 
 
 class FormulationExtender(OptimizationObject):
-  mapping = {}
+  _mapping = {}

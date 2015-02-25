@@ -7,8 +7,12 @@ before_install:
   - sudo apt-get install -y libgfortran3 liblapack3gf python-numpy python-scipy python-matplotlib
   - "wget -O casadi.deb http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi_2.2.0-2_amd64.deb"
   - sudo dpkg -i casadi.deb
+  - pip install pytest-cov coveralls
 
 install:
     - pip install .
 
-script:  py.test . 
+script:  py.test --cov optoy --doctest-modules optoy tests
+
+after_success:
+  coveralls

@@ -45,7 +45,7 @@ class OptimizationDisturbance(OptimizationObject):
 
   """
   shorthand = "w"
-  mapping = {}
+  _mapping = {}
   ode_param = True
   nlp_var = False
   

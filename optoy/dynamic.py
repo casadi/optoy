@@ -29,7 +29,7 @@ class OptimizationTime(OptimizationObject):
      time
   """
   shorthand = "t"
-  mapping = {}
+  _mapping = {}
 
   def __init__(self):
     self.create(1,"t")
@@ -86,7 +86,7 @@ class OptimizationState(OptimizationContinousVariable):
       
   """
   shorthand = "x"
-  mapping = {}
+  _mapping = {}
   lim_mapping = {}
   
   def __init__(self,shape=1,lb=-inf,ub=inf,name="x",init=0):
@@ -95,8 +95,8 @@ class OptimizationState(OptimizationContinousVariable):
   @classmethod
   def getDependent(cl,v):
     newvars = set()
-    if hash(v) in cl.mapping:
-      newvars.update(set(getSymbols(cl.mapping[hash(v)].dot)))
+    if hash(v) in cl._mapping:
+      newvars.update(set(getSymbols(cl._mapping[hash(v)].dot)))
     if hash(v) in cl.lim_mapping: newvars.update(set(getSymbols(cl.lim_mapping[hash(v)])))
     return newvars
 
@@ -128,7 +128,7 @@ class OptimizationControl(OptimizationContinousVariable):
       
   """
   shorthand = "u"
-  mapping = {}
+  _mapping = {}
   lim_mapping = {}
     
   def __init__(self,shape=1,lb=-inf,ub=inf,name="u",init=0):
