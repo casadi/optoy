@@ -117,47 +117,55 @@ def maximize(f,**kwargs):
 def minimize(f,gl=[],verbose=False):
   """
    
-   Minimizes an objective function subject to a list of constraints
+  Miminimizes an objective function subject to a list of constraints.
+  The standard NLP form reads::
    
-   The static package of optoy works with following standard NLP formulation:
-   
-   .. math::
-      \\textrm{min}_{x} & f(x,p) \\
-           \\textrm{subject to}  & g(x,p)<=0 \\
-                                 & h(x,p)=0
-      :label: min
-
-    where :math:`x \in \mathbb{R}^n` are the decision variables, 
-    :math:`p \in \mathbb{R}^m` are problem parameters,
-    :math:`f` is the objective function, and
-    :math:`g` the inequality constraints, and
-    :math:`h` the equality constraints.
-
-   :param f: objective function
-   :type f: symbolic expression
+      mininimze       f(x,p)
+          x      
        
-   :param gl: list of constraints (mixed equalities and inequalities)
-   :type gl: list of symbolic expressions.
-       each constraint should have one of these form:
-             * lhs<=rhs
-             * lhs>=rhs
-             * lhs==rhs
-             
-             where lhs and rhs are expression
-             
-    :returns: If numerical solution was succesful,
-    returns cost at the optimal solution.
-    Otherwise raises an exception.
-    
-    ..doctest::
+       subject to     g(x,p) <= 0
+                      h(x,p)  = 0
+  
+  with x the decision variables, p constant parameters,
+  f the objective, g the inequality constraints, and h the equality constraints. 
+   
+  Parameters
+  ----------
+   
+  f : symbolic expression
+      objective function
+       
+  gl : list of constraints, optional
+       Equality and inequality constraints can be mixed.
+       Each entry in the constraint list should be
+            lhs<=rhs  ,   lhs>=rhs  or  lhs==rhs
+       where lhs and rhs are expressions.
 
-       >>> x = var()
-       >>> y = var()
-       >>> cost = minimize((1-x)**2+100*(y-x**2)**2)
-       >>> print round(cost,8)
-       0.0
-       >>> print round(x.sol,8), round(y.sol,8)
-       1.0 1.0
+   verbose : bool, optional
+             Specify the verbosity of the output 
+         
+  Returns
+  -------
+    
+  If numerical solution was succesful,
+  returns cost at the optimal solution.
+  Otherwise raises an exception.
+    
+  Example
+  -------
+    
+  >>> x = var()
+  >>> y = var()
+  >>> cost = minimize((1-x)**2+100*(y-x**2)**2)
+  >>> print round(cost,8)
+  0.0
+  >>> print round(x.sol,8), round(y.sol,8)
+  1.0 1.0
+
+  See Also
+  --------
+  maximize : flip the sign of the objective
+
   """
   
   if not isinstance(gl,list):
