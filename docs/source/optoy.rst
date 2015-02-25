@@ -4,8 +4,8 @@ optoy package
 Overview
 -------------------
 
-.. automodule:: optoy
-    :members:
+Home page: http://optoy.casadi.org
+Examples: http://nbviewer.ipython.org/github/casadi/optoy/tree/master/examples/
 
 Static optimization
 -------------------
