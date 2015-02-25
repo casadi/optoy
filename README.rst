@@ -3,7 +3,7 @@ optoy
 
 Because optimization is fun!
 
-|unix|  |docs|
+|unix| |cover| |docs|
 
 .. |unix| image:: https://api.travis-ci.org/casadi/optoy.svg
     :target: http://travis-ci.org/casadi/optoy
@@ -12,6 +12,10 @@ Because optimization is fun!
 .. |docs| image:: https://readthedocs.org/projects/optoy/badge/?version=latest
     :target: https://readthedocs.org/projects/optoy/?badge=latest
     :alt: Documentation Status
+
+.. |cover| image:: https://coveralls.io/repos/casadi/optoy/badge.svg?branch=master
+    :target: https://coveralls.io/r/casadi/optoy?branch=master
+    :alt: Coverage Status
 
 Optoy combines the power of `casadi <http://casadi.org>`_ with a very compact Python user interface.
 Start optimizing in minutes...
