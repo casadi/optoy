@@ -16,6 +16,9 @@ import sys
 import os
 
 import subprocess
+from ctypes import *
+
+
 
 # We will have to wait for Sphinx 1.3 to use:
 
@@ -24,11 +27,7 @@ with open('../../optoy/conf.py') as f:
 
 subprocess.Popen("wget http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi-2.2.0.tar.gz",shell=True).wait()
 subprocess.Popen("tar -xvf python-casadi-2.2.0.tar.gz",shell=True).wait()
-subprocess.Popen("ln -s python-casadi-2.2.0/lib/libcasadi.so libcasadi.so.2.3",shell=True).wait()
-subprocess.Popen("pwd",shell=True).wait()
-subprocess.Popen("ls",shell=True).wait()
-
-os.environ["LD_LIBRARY_PATH"] = ":/home/docs/checkouts/readthedocs.org/user_builds/optoy/checkouts/latest/docs/source/"
+cdll.LoadLibrary('/home/docs/checkouts/readthedocs.org/user_builds/optoy/checkouts/latest/docs/source/python-casadi-2.2.0/lib/libcasadi.so')
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
