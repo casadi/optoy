@@ -141,7 +141,7 @@ def minimize(f,gl=[],verbose=False):
             lhs<=rhs  ,   lhs>=rhs  or  lhs==rhs
        where lhs and rhs are expressions.
 
-   verbose : bool, optional
+  verbose : bool, optional
              Specify the verbosity of the output 
          
   Returns
