@@ -8,7 +8,7 @@ before_install:
   - "wget -O casadi.deb http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi_2.2.0-2_amd64.deb"
   - sudo dpkg -i casadi.deb
   - pip install pytest-cov coveralls pypng ipython[notebook]
-  - wget -o ipnbdoctest.py https://gist.githubusercontent.com/akimd/f60b2f26ea70c72db175/raw/e0a11c92b002796aa2337b113a549ca075be8a12/ipynbdoctest,py
+  - wget -O ipnbdoctest.py https://gist.githubusercontent.com/akimd/f60b2f26ea70c72db175/raw/e0a11c92b002796aa2337b113a549ca075be8a12/ipynbdoctest,py
   
 install:
     - pip install .
