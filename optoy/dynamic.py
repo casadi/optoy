@@ -170,7 +170,7 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
         periodic=False, integration_intervals=1, exact_hessian=None):
     """
 
-    Solves an optimal control problem (OCP):
+    Solves an optimal control problem (OCP)::
 
         mininimze         E(x(T),v)
          x(t), u(t), v
@@ -184,6 +184,7 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
     h the path constraints, and r boundary conditions.
 
     In optoy, the system dynamics is specified with the .dot attribute on a state:
+    
     >>> x = state()
     >>> x.dot = 1-x**2
 
