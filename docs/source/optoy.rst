@@ -5,7 +5,7 @@ Overview
 -------------------
 
 Home page: `<http://optoy.casadi.org>`_
-Examples: `<http://nbviewer.ipython.org/github/casadi/optoy/tree/master/examples/`_
+Examples: `<http://nbviewer.ipython.org/github/casadi/optoy/tree/master/examples/>`_
 
 Static optimization
 -------------------
