@@ -12,7 +12,9 @@ before_install:
 install:
     - pip install .
 
-script:  py.test --cov optoy --doctest-modules optoy tests
+script:
+    - py.test --cov optoy --doctest-modules optoy tests
+    - py.test examples
 
 after_success:
   coveralls
