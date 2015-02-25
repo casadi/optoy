@@ -16,6 +16,6 @@ install:
 script:
     - py.test --cov optoy --doctest-modules optoy tests
     - python ipnbdoctest.py examples/*.ipynb
-
+    
 after_success:
   coveralls
