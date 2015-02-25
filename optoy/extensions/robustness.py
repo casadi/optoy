@@ -26,213 +26,252 @@ from ..dynamic import *
 
 OptimizationContext.Jeval_cache = {}
 
+
 class OptimizationDisturbance(OptimizationObject):
-  """
-    Create a disturbance source term
-    
+
+    """
+      Create a disturbance source term
+
+      Parameters
+      -------------------
+
+      shape: integer or (integer,integer)
+        Matrix shape of the symbol
+
+      name: string
+        A name for the symbol to be used in printing.
+        Not required to be unique
+
+      cov: symmertric matrix
+        Disturbance covariance matrix
+
+    """
+    shorthand = "w"
+    _mapping = {}
+    ode_param = True
+    nlp_var = False
+
+    def __init__(self, shape=1, name="w", cov=None):
+        self.create(shape, name)
+        self.cov = cov
+        self.sol = 0
+
+
+def Sigma(e, nums=None):
+    """
+    Evaluates the covariance of an expression numerically
+
     Parameters
     -------------------
-    
-    shape: integer or (integer,integer)
-      Matrix shape of the symbol
-    
-    name: string
-      A name for the symbol to be used in printing.
-      Not required to be unique
- 
-    cov: symmertric matrix
-      Disturbance covariance matrix
+    e: symbolic expression
+       the quantity you want the covariance of
 
-  """
-  shorthand = "w"
-  _mapping = {}
-  ode_param = True
-  nlp_var = False
-  
-  def __init__(self,shape=1,name="w",cov=None):
-    self.create(shape,name)
-    self.cov = cov
-    self.sol = 0
+    nums: dictionary, optional
+          dictionary denoting the values of variables
+          if not supplied, the optimal values are assumed
 
-def Sigma(e,nums={}):
-  """
-  Evaluates the covariance of an expression numerically
-  
-   Parameters
-   -------------------
-     e: expression to be evaluated
-     
-     nums: optional dictionary denoting the values of Variables
-       if not supplied, the optimal values are assumed
-     
+    """
+    if nums is None: nums = {}
+    if isinstance(e, list):
+        return [value(i) for i in e]
+    if e in OptimizationContext.Jeval_cache:
+        Js, xp = OptimizationContext.Jeval_cache[e]
+    else:
 
-  """
-  if isinstance(e,list):
-    return [value(i) for i in e]
-  if e in OptimizationContext.Jeval_cache:
-    Js,xp = OptimizationContext.Jeval_cache[e]
-  else:
-    
-    syms = get_primitives(e,dep=False)
-    xp = []
-    for k in sorted(syms.keys()):
-      xp+=syms[k]
+        syms = get_primitives(e, dep=False)
+        xp = []
+        for k in sorted(syms.keys()):
+            xp += syms[k]
 
-    f = MXFunction(xp,[e])
-    f.init()
+        f = MXFunction(xp, [e])
+        f.init()
 
-    
-    Js = [ f.jacobian(i,0) for i in range(len(xp)) if isinstance(xp[i],OptimizationState) ]
-    for j in Js:j.init()
+        Js = [
+            f.jacobian(
+                i,
+                0) for i in range(
+                len(xp)) if isinstance(
+                xp[i],
+                OptimizationState)]
+        for j in Js:
+            j.init()
 
-    OptimizationContext.Jeval_cache[e] = (Js,xp)
-  
-  Pse = syms["x"][0].cov
-  
-  l = []
-  for k in range(len(Pse)):
-    v = []
-    r = []
-    for j in range(len(Js)):
-      r+=syms["x"][j].states_range
-      for i in range(len(xp)):
-        x = xp[i]
-        s = nums.get(x,x.sol)
-        if isinstance(s,list):
-          Js[j].setInput(s[k],i)
-        else:
-          Js[j].setInput(s,i)
-      Js[j].evaluate()
-      v.append(Js[j].getOutput())
-    r = vertcat(r)
-    P = Pse[k][r,r]
-    J = horzcat(v)
-    l.append(mul([J,P,J.T]))
-  return l
-  
+        OptimizationContext.Jeval_cache[e] = (Js, xp)
+
+    Pse = syms["x"][0].cov
+
+    l = []
+    for k in range(len(Pse)):
+        v = []
+        r = []
+        for j in range(len(Js)):
+            r += syms["x"][j].states_range
+            for i in range(len(xp)):
+                x = xp[i]
+                s = nums.get(x, x.sol)
+                if isinstance(s, list):
+                    Js[j].setInput(s[k], i)
+                else:
+                    Js[j].setInput(s, i)
+            Js[j].evaluate()
+            v.append(Js[j].getOutput())
+        r = vertcat(r)
+        P = Pse[k][r, r]
+        J = horzcat(v)
+        l.append(mul([J, P, J.T]))
+    return l
+
+
 class ProbabilityFormulation(FormulationExtender):
-  shorthand = "T"
-  def __init__(self,shape=1,name="sqrt(h'Ph)",h=None):
-    self.create(shape,name)
-    self.h = h
+    shorthand = "T"
 
-  @classmethod
-  def process(self,intg,syms,N,T,X,P,Pw0,states,gl,gl_pure,gl_equality):
-    # Filter out the constraints that will be robustified
-    self.gl_pure = gl_pure
-    self.gl_equality = gl_equality
+    def __init__(self, shape=1, name="sqrt(h'Ph)", h=None):
+        self.create(shape, name)
+        self.h = h
 
-    gl = [i for i in gl if not dependsOn(i,syms["T"])]
-    
-    gl_pure = []
-    gl_equality = []
-    for i,e in enumerate(self.gl_pure):
-      if not dependsOn(e,syms["T"]):
-        gl_pure.append(self.gl_pure[i])
-        gl_equality.append(self.gl_equality[i])
+    @classmethod
+    def process(
+            self, intg, syms, N, T, X, P, Pw0, states, gl, gl_pure, gl_equality):
+        # Filter out the constraints that will be robustified
+        self.gl_pure = gl_pure
+        self.gl_equality = gl_equality
 
-    self.syms = syms
-    self.states = states
+        gl = [i for i in gl if not dependsOn(i, syms["T"])]
 
-    # Work with integrator sensitivities
-    Af = intg.jacobian("x0","xf")
-    Af.init()
+        gl_pure = []
+        gl_equality = []
+        for i, e in enumerate(self.gl_pure):
+            if not dependsOn(e, syms["T"]):
+                gl_pure.append(self.gl_pure[i])
+                gl_equality.append(self.gl_equality[i])
 
-    Bf = intg.jacobian("p","xf")
-    Bf.init()
+        self.syms = syms
+        self.states = states
 
-    wdim = veccat(syms["w"]).size()
+        # Work with integrator sensitivities
+        Af = intg.jacobian("x0", "xf")
+        Af.init()
 
-    # Construct the DPLE matrices
-    As = [ Af(x0=X["X",k],p=veccat([X["U",k]]+Pw0))[0] for k in range(N)]
-    Bs = [ Bf(x0=X["X",k],p=veccat([X["U",k]]+Pw0))[0] for k in range(N)]
-    Cs = [ b[:,b.size2()-wdim:]  for b in Bs ]
+        Bf = intg.jacobian("p", "xf")
+        Bf.init()
 
-    Sigma_w = diagcat([i.cov for i in syms["w"]])
+        wdim = veccat(syms["w"]).size()
 
-    Qs = [ mul([c,Sigma_w,c.T]) for c in Cs ]
-    
-    # Select a DPLE solver
-    solver = "slicot"
-    if not DpleSolver.hasPlugin(solver):
-      print "Warning. Slicot plugin not found. You may see degraded performance"
-      solver = "simple"
+        # Construct the DPLE matrices
+        As = [Af(x0=X["X", k], p=veccat([X["U", k]] + Pw0))[0]
+              for k in range(N)]
+        Bs = [Bf(x0=X["X", k], p=veccat([X["U", k]] + Pw0))[0]
+              for k in range(N)]
+        Cs = [b[:, b.size2() - wdim:] for b in Bs]
 
-    # Instantiate the solver
-    dple = DpleSolver(solver,[i.sparsity() for i in As],[i.sparsity() for i in Qs])
-    dple.setOption("linear_solver","csparse")
-    dple.init()
-    Ps = horzsplit(dple(a=horzcat(As),v=horzcat(Qs))[0],states.size)
+        Sigma_w = diagcat([i.cov for i in syms["w"]])
 
-    # Obtain path constraints jacobians
-    hJs = [ horzcat([jacobian(t.h,x) for x in syms["x"]]) for t in syms["T"] ]
-    
-    # Build a function out of the path constraint jac left-right multiplication
-    Pss = MX.sym("P",Ps[0].sparsity())
-    rmargins = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"]+syms["w"]+[Pss],[ sqrt(mul([hj,Pss,hj.T])) for hj in hJs ])
-    rmargins.setOption("name","rmargin")
-    rmargins = try_expand(rmargins)
+        Qs = [mul([c, Sigma_w, c.T]) for c in Cs]
 
-    # Construct the robust path constraint
-    h_robust = MXFunction(syms["x"]+syms["u"]+syms["p"]+syms["v"]+syms["w"]+syms["T"],[a for a in self.gl_pure if dependsOn(a,syms["T"])])
-    h_robust.setOption("name","h_robust")
-    h_robust.init()
-    self.h_robust = h_robust = try_expand(h_robust)
+        # Select a DPLE solver
+        solver = "slicot"
+        if not DpleSolver.hasPlugin(solver):
+            print "Warning. Slicot plugin not found. You may see degraded performance"
+            solver = "simple"
 
-    self.Psf =Psf = MXFunction(nlpIn(x=X,p=P),[horzcat(Ps)])
-    Psf.init()
-  
-    return [entry("robust_path",expr=[ h_robust(X["X",k,...]+X["U",k,...]+Pw0+rmargins(X["X",k,...]+X["U",k,...]+Pw0+[Ps[k]])) for k in range(N)])], gl,gl_pure, gl_equality
+        # Instantiate the solver
+        dple = DpleSolver(
+            solver, [
+                i.sparsity() for i in As], [
+                i.sparsity() for i in Qs])
+        dple.setOption("linear_solver", "csparse")
+        dple.init()
+        Ps = horzsplit(dple(a=horzcat(As), v=horzcat(Qs))[0], states.size)
 
-  @classmethod
-  def setBounds(self,lbx,ubx,x0,lbg,ubg):
-    # Set robust path constraints bounds
-    for i,eq in enumerate([e for g,e in zip(self.gl_pure,self.gl_equality) if dependsOn(g,self.syms["T"])]):
-      lbg["robust_path",:,i] = -Inf
-      ubg["robust_path",:,i] = 0
+        # Obtain path constraints jacobians
+        hJs = [horzcat([jacobian(t.h, x) for x in syms["x"]])
+               for t in syms["T"]]
 
-  @classmethod
-  def extractSol(self,solver):
-    self.Psf.setInput(solver.output("x"),"x")
-    self.Psf.setInput(solver.input("p"),"p")
-    self.Psf.evaluate()
-       
-    Ps_e = horzsplit(self.Psf.getOutput(),self.states.size)
-    for i in self.syms["x"]:
-      i.cov = Ps_e
-      i.states_range = self.states.f[str(hash(i))]
-  
-  @classmethod
-  def setOptions(self,exact_hessian):
-    if exact_hessian is None:
-      exact_hessian = self.h_robust.getNumOutputs()==0
-    return exact_hessian 
+        # Build a function out of the path constraint jac left-right
+        # multiplication
+        Pss = MX.sym("P", Ps[0].sparsity())
+        rmargins = MXFunction(syms["x"] +
+                              syms["u"] +
+                              syms["p"] +
+                              syms["v"] +
+                              syms["w"] +
+                              [Pss], [sqrt(mul([hj, Pss, hj.T])) for hj in hJs])
+        rmargins.setOption("name", "rmargin")
+        rmargins = try_expand(rmargins)
 
+        # Construct the robust path constraint
+        h_robust = MXFunction(
+            syms["x"] +
+            syms["u"] +
+            syms["p"] +
+            syms["v"] +
+            syms["w"] +
+            syms["T"],
+            [
+                a for a in self.gl_pure if dependsOn(
+                    a,
+                    syms["T"])])
+        h_robust.setOption("name", "h_robust")
+        h_robust.init()
+        self.h_robust = h_robust = try_expand(h_robust)
+
+        self.Psf = Psf = MXFunction(nlpIn(x=X, p=P), [horzcat(Ps)])
+        Psf.init()
+
+        return [entry("robust_path", expr=[h_robust(X["X", k, ...] + X["U", k, ...] + Pw0 + rmargins(
+            X["X", k, ...] + X["U", k, ...] + Pw0 + [Ps[k]])) for k in range(N)])], gl, gl_pure, gl_equality
+
+    @classmethod
+    def setBounds(self, lbx, ubx, x0, lbg, ubg):
+        # Set robust path constraints bounds
+        for i, eq in enumerate([e for g, e in zip(
+                self.gl_pure, self.gl_equality) if dependsOn(g, self.syms["T"])]):
+            lbg["robust_path", :, i] = -Inf
+            ubg["robust_path", :, i] = 0
+
+    @classmethod
+    def extractSol(self, solver):
+        self.Psf.setInput(solver.output("x"), "x")
+        self.Psf.setInput(solver.input("p"), "p")
+        self.Psf.evaluate()
+
+        Ps_e = horzsplit(self.Psf.getOutput(), self.states.size)
+        for i in self.syms["x"]:
+            i.cov = Ps_e
+            i.states_range = self.states.f[str(hash(i))]
+
+    @classmethod
+    def setOptions(self, exact_hessian):
+        if exact_hessian is None:
+            exact_hessian = self.h_robust.getNumOutputs() == 0
+        return exact_hessian
 
 
 def Prob(e):
-  """ h <= 0
-  """
-  from scipy.stats import norm
+    """ h <= 0
+    """
+    from scipy.stats import norm
 
-  if e.isOperation(OP_LE) or e.isOperation(OP_LT):
-     h = e.getDep(0)-e.getDep(1)
-  else:
-     raise Exception("Prob(e): expected comparison")
+    if e.isOperation(OP_LE) or e.isOperation(OP_LT):
+        h = e.getDep(0) - e.getDep(1)
+    else:
+        raise Exception("Prob(e): expected comparison")
 
-  if not h.isScalar():
-    raise Exception("Prob(e): expected scalar expression")
-  ret = (h + ProbabilityFormulation(h.shape,h=h)) <= 0
+    if not h.isScalar():
+        raise Exception("Prob(e): expected scalar expression")
+    ret = (h + ProbabilityFormulation(h.shape, h=h)) <= 0
 
+    class Wrapper(MX):
 
-  class Wrapper(MX):
+        def g_mod(self, b):
+            return (
+                h - norm.ppf(b) * ProbabilityFormulation(h.shape, h=h)) >= 0
 
-    def g_mod(self,b):
-      return (h - norm.ppf(b)*ProbabilityFormulation(h.shape,h=h)) >= 0
-    def l_mod(self,b):
-      return (h + norm.ppf(b)*ProbabilityFormulation(h.shape,h=h)) <= 0
-    
-    __lt__ = __le__ = l_mod
-    __gt__ = __ge__ = g_mod  
+        def l_mod(self, b):
+            return (
+                h + norm.ppf(b) * ProbabilityFormulation(h.shape, h=h)) <= 0
 
-  return Wrapper(ret)
+        __lt__ = __le__ = l_mod
+        __gt__ = __ge__ = g_mod
+
+    return Wrapper(ret)
