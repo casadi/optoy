@@ -95,7 +95,7 @@ def test_5():
   hyper = [  (vertcat([1,1]),   vertcat([0,0]),   4),
              (vertcat([0.5,2]), vertcat([1,0.5]), 4)]
 
-  h = [ sumAll(((p-pref)/s)**n)>=1 for s,pref,n in hyper]
+  h = [ sumRows(((p-pref)/s)**n)>=1 for s,pref,n in hyper]
 
   T = var(lb=0,init=4)
 
@@ -118,7 +118,7 @@ def test_6():
   hyper = [  (vertcat([1,1]),   vertcat([0,0]),   4),
              (vertcat([0.5,2]), vertcat([1,0.5]), 4)]
 
-  h = [ Prob(sumAll(((p-pref)/s)**n)>=1)<=0.8414 for s,pref,n in hyper]
+  h = [ Prob(sumRows(((p-pref)/s)**n)>=1)<=0.8414 for s,pref,n in hyper]
 
   T = var(lb=0,init=4)
 

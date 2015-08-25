@@ -186,10 +186,19 @@ def minimize(f, gl=[], verbose=False):
 
     >>> x = var()
     >>> y = var()
-    >>> cost = minimize((1-x)**2+100*(y-x**2)**2)
-    >>> print round(cost,8)
+    >>> cost = (1-x)**2+100*(y-x**2)**2
+    >>> minimize(cost)
+    <BLANKLINE>
+    ******************************************************************************
+    This program contains Ipopt, a library for large-scale nonlinear optimization.
+     Ipopt is released as open source code under the Eclipse Public License (EPL).
+             For more information visit http://projects.coin-or.org/Ipopt
+    ******************************************************************************
+    <BLANKLINE>
+    <optoy.static.StaticOptimization instance at 0x...>
+    >>> print round(value(cost),8)
     0.0
-    >>> print round(x.sol,8), round(y.sol,8)
+    >>> print round(value(x),8), round(value(y),8)
     1.0 1.0
 
     See Also
@@ -197,80 +206,90 @@ def minimize(f, gl=[], verbose=False):
     maximize : flip the sign of the objective
 
     """
+    return StaticOptimization(f,gl,verbose)
 
+
+class StaticOptimization:
+  def __init__(self,f, gl=[], verbose=False):
+    
     if not isinstance(gl, list):
         raise Exception("Constraints must be given as a list")
 
     # Determine nature of constraints, either g(x)<=0 or g(x)==0
     gl_pure, gl_equality = sort_constraints(gl)
 
+    self.gl_equality =gl_equality
+
     # Get all symbolic primitives
     syms = get_primitives([f] + gl_pure)
-    x = syms["v"]
-    p = syms["p"]
+    self.x = x = syms["v"]
+    self.p = p = syms["p"]
 
     # Create structures
-    X = struct_symMX([entry(str(hash(i)), shape=i.sparsity()) for i in x])
-    P = struct_symMX([entry(str(hash(i)), shape=i.sparsity()) for i in p])
-    G = struct_MX([entry(str(i), expr=g) for i, g in enumerate(gl_pure)])
+    self.X = X = struct_symMX([entry(str(hash(i)), shape=i.sparsity()) for i in x])
+    self.P = P = struct_symMX([entry(str(hash(i)), shape=i.sparsity()) for i in p])
+    self.G = G = struct_MX([entry(str(i), expr=g) for i, g in enumerate(gl_pure)])
 
     # Subsitute the casadi symbols for the structured variants
-    original = MXFunction(x + p, nlpOut(f=f, g=G))
-    original.init()
+    original = MXFunction("original",x + p, nlpOut(f=f, g=G))
 
-    nlp = MXFunction(nlpIn(x=X, p=P), original(X[...] + P[...]))
-    nlp.init()
+    nlp = MXFunction("nlp",nlpIn(x=X, p=P), original(X[...] + P[...]))
+    nlp = try_expand(nlp)
 
-    # Allocate an ipopt solver
-    solver = NlpSolver("ipopt", nlp)
+    options = {}
     if not verbose:
-        solver.setOption("print_time", False)
-        solver.setOption("print_level", 0)
-        solver.setOption("verbose", False)
-    solver.setOption("expand", True)
-    solver.init()
+        options["print_time"] = False
+        options["print_level"] = 0
+        options["verbose"] = False
+    # Allocate an ipopt solver
+    self.solver = solver = NlpSolver("solver","ipopt", nlp, options)
+    self._solve()
+
+
+
+  def _solve(self):
+    solver = self.solver
 
     # Set bounds on variables, set initial value
-    x0 = X(solver.input("x0"))
-    lbx = X(solver.input("lbx"))
-    ubx = X(solver.input("ubx"))
+    x0 = self.X(0)
+    lbx = self.X(0)
+    ubx = self.X(0)
 
-    for i in x:
+    for i in self.x:
         h = str(hash(i))
         lbx[h] = i.lb
         ubx[h] = i.ub
         x0[h] = i.init
 
-    # Set parameter values
-    par = P(solver.input("p"))
-
-    for i in p:
-        h = str(hash(i))
-        par[h] = i.value
-
     # Set constraint bounds
-    lbg = G(solver.input("lbg"))
-    ubg = G(solver.input("ubg"))
+    lbg = self.G(0)
+    ubg = self.G(0)
 
-    for i, eq in enumerate(gl_equality):
+    for i, eq in enumerate(self.gl_equality):
         if eq:
             lbg[str(i)] = ubg[str(i)] = 0
         else:
             lbg[str(i)] = -inf
             ubg[str(i)] = 0
 
+    # Set parameter values
+    par = self.P(0)
+
+    for i in self.p:
+        h = str(hash(i))
+        par[h] = i.value
+
     # Solve the problem numerically
-    solver.evaluate()
+    sol = solver(x0=x0,lbg=lbg,ubg=ubg,lbx=lbx,ubx=ubx,p=par)
 
     # Raise an exception if not converged
-    if solver.getStat('return_status') != "Solve_Succeeded":
+    if self.solver.getStat('return_status') != "Solve_Succeeded":
         raise Exception(
             "Problem failed to solve. Add verbose=True to see what happened.")
 
     # Add the solution to the OptimizationObjects
-    opt = X(solver.output("x"))
-    for i in x:
+    opt = self.X(sol["x"])
+    for i in self.x:
         i.sol = opt[str(hash(i))]
 
-    # Return optimal cost
-    return float(solver.getOutput("f"))
+  update = _solve

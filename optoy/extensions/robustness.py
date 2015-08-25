@@ -136,12 +136,12 @@ class ProbabilityFormulation(FormulationExtender):
         self.gl_pure = gl_pure
         self.gl_equality = gl_equality
 
-        gl = [i for i in gl if not dependsOn(i, syms["T"])]
+        gl = [i for i in gl if not dependsOn(i, veccat(syms["T"]))]
 
         gl_pure = []
         gl_equality = []
         for i, e in enumerate(self.gl_pure):
-            if not dependsOn(e, syms["T"]):
+            if not dependsOn(e, veccat(syms["T"])):
                 gl_pure.append(self.gl_pure[i])
                 gl_equality.append(self.gl_equality[i])
 
@@ -150,17 +150,14 @@ class ProbabilityFormulation(FormulationExtender):
 
         # Work with integrator sensitivities
         Af = intg.jacobian("x0", "xf")
-        Af.init()
-
         Bf = intg.jacobian("p", "xf")
-        Bf.init()
 
         wdim = veccat(syms["w"]).size()
 
         # Construct the DPLE matrices
-        As = [Af(x0=X["X", k], p=veccat([X["U", k]] + Pw0))[0]
+        As = [Af(x0=X["X", k], p=veccat([X["U", k]] + Pw0),h=1)["jac"]
               for k in range(N)]
-        Bs = [Bf(x0=X["X", k], p=veccat([X["U", k]] + Pw0))[0]
+        Bs = [Bf(x0=X["X", k], p=veccat([X["U", k]] + Pw0),h=1)["jac"]
               for k in range(N)]
         Cs = [b[:, b.size2() - wdim:] for b in Bs]
 
@@ -175,13 +172,11 @@ class ProbabilityFormulation(FormulationExtender):
             solver = "simple"
 
         # Instantiate the solver
-        dple = DpleSolver(
-            solver, [
-                i.sparsity() for i in As], [
-                i.sparsity() for i in Qs])
-        dple.setOption("linear_solver", "csparse")
-        dple.init()
-        Ps = horzsplit(dple(a=horzcat(As), v=horzcat(Qs))[0], states.size)
+        dple = DpleSolver("dple",
+            solver, {"a": [i.sparsity() for i in As],
+                     "v": [i.sparsity() for i in Qs]}
+              ,{"linear_solver": "csparse"})
+        Ps = horzsplit(dple(a=horzcat(As), v=horzcat(Qs))["p"], states.size)
 
         # Obtain path constraints jacobians
         hJs = [horzcat([jacobian(t.h, x) for x in syms["x"]])
@@ -190,17 +185,18 @@ class ProbabilityFormulation(FormulationExtender):
         # Build a function out of the path constraint jac left-right
         # multiplication
         Pss = MX.sym("P", Ps[0].sparsity())
-        rmargins = MXFunction(syms["x"] +
+        rmargins = MXFunction("rmargins",
+                              syms["x"] +
                               syms["u"] +
                               syms["p"] +
                               syms["v"] +
                               syms["w"] +
                               [Pss], [sqrt(mul([hj, Pss, hj.T])) for hj in hJs])
-        rmargins.setOption("name", "rmargin")
         rmargins = try_expand(rmargins)
 
         # Construct the robust path constraint
         h_robust = MXFunction(
+            "h_robust",
             syms["x"] +
             syms["u"] +
             syms["p"] +
@@ -210,13 +206,10 @@ class ProbabilityFormulation(FormulationExtender):
             [
                 a for a in self.gl_pure if dependsOn(
                     a,
-                    syms["T"])])
-        h_robust.setOption("name", "h_robust")
-        h_robust.init()
+                    veccat(syms["T"]))])
         self.h_robust = h_robust = try_expand(h_robust)
 
-        self.Psf = Psf = MXFunction(nlpIn(x=X, p=P), [horzcat(Ps)])
-        Psf.init()
+        self.Psf = Psf = MXFunction("Psf",nlpIn(x=X, p=P), [horzcat(Ps)])
 
         return [entry("robust_path", expr=[h_robust(X["X", k, ...] + X["U", k, ...] + Pw0 + rmargins(
             X["X", k, ...] + X["U", k, ...] + Pw0 + [Ps[k]])) for k in range(N)])], gl, gl_pure, gl_equality
@@ -225,14 +218,14 @@ class ProbabilityFormulation(FormulationExtender):
     def setBounds(self, lbx, ubx, x0, lbg, ubg):
         # Set robust path constraints bounds
         for i, eq in enumerate([e for g, e in zip(
-                self.gl_pure, self.gl_equality) if dependsOn(g, self.syms["T"])]):
+                self.gl_pure, self.gl_equality) if dependsOn(g, veccat(self.syms["T"]))]):
             lbg["robust_path", :, i] = -Inf
             ubg["robust_path", :, i] = 0
 
     @classmethod
     def extractSol(self, solver):
-        self.Psf.setInput(solver.output("x"), "x")
-        self.Psf.setInput(solver.input("p"), "p")
+        self.Psf.setInput(solver.getOutput("x"), "x")
+        self.Psf.setInput(solver.getInput("p"), "p")
         self.Psf.evaluate()
 
         Ps_e = horzsplit(self.Psf.getOutput(), self.states.size)
@@ -243,7 +236,7 @@ class ProbabilityFormulation(FormulationExtender):
     @classmethod
     def setOptions(self, exact_hessian):
         if exact_hessian is None:
-            exact_hessian = self.h_robust.getNumOutputs() == 0
+            exact_hessian = self.h_robust.nOut() == 0
         return exact_hessian
 
 
@@ -257,7 +250,7 @@ def Prob(e):
     else:
         raise Exception("Prob(e): expected comparison")
 
-    if not h.isScalar():
+    if not h.isscalar():
         raise Exception("Prob(e): expected scalar expression")
     ret = (h + ProbabilityFormulation(h.shape, h=h)) <= 0
 

@@ -26,6 +26,17 @@ from casadi import *
 from casadi.tools import *
 
 
+def try_expand(f):
+    """ Attempts to cast an MXFunction as SXFunxtion """
+    if not f.isInit():
+        f.init()
+    try:
+        r = SXFunction(f)
+        r.init()
+        return r
+    except:
+        return f
+
 class OptimizationObject(MX):
 
     """
@@ -78,7 +89,7 @@ def get_primitives(el, dep=True):
     MX.__eq__ = cmpbyhash
 
     # Get an exhausive list of all casadi symbols that make up f and gl
-    vars = set(getSymbols(veccat(el) if isinstance(el, list) else el))
+    vars = set(symvar(veccat(el) if isinstance(el, list) else el))
 
     if dep:
         while True:
@@ -167,8 +178,10 @@ def value(e, nums={}):
     if e in OptimizationContext.eval_cache:
         f, xp = OptimizationContext.eval_cache[e]
     else:
-
-        syms = get_primitives(e, dep=False)
+        try:
+          syms = get_primitives(e, dep=False)
+        except:
+          return e
         xp = []
         for k in sorted(syms.keys()):
             xp += syms[k]

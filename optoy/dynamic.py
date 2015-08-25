@@ -46,22 +46,10 @@ def value_time(e, t):
     try:
         return DMatrix(e)
     except:
-        f = MXFunction(getSymbols(e), [e])
-        f.init()
-        f.setInput(t)
-        f.evaluate()
-        return f.getOutput()
+        f = MXFunction("f",symvar(e), [e])
+        return f([t])[0]
 
 
-def try_expand(f):
-    if not f.isInit():
-        f.init()
-    try:
-        r = SXFunction(f)
-        r.init()
-        return r
-    except:
-        return f
 
 
 class OptimizationState(OptimizationContinousVariable):
@@ -109,9 +97,9 @@ class OptimizationState(OptimizationContinousVariable):
     def getDependent(cl, v):
         newvars = set()
         if hash(v) in cl._mapping:
-            newvars.update(set(getSymbols(cl._mapping[hash(v)].dot)))
+            newvars.update(set(symvar(cl._mapping[hash(v)].dot)))
         if hash(v) in cl.lim_mapping:
-            newvars.update(set(getSymbols(cl.lim_mapping[hash(v)])))
+            newvars.update(set(symvar(cl.lim_mapping[hash(v)])))
         return newvars
 
 
@@ -160,7 +148,7 @@ class OptimizationControl(OptimizationContinousVariable):
     def getDependent(cl, v):
         newvars = set()
         if hash(v) in cl.lim_mapping:
-            newvars.update(set(getSymbols(cl.lim_mapping[hash(v)])))
+            newvars.update(set(symvar(cl.lim_mapping[hash(v)])))
         return newvars
 
 state   = OptimizationState
@@ -227,6 +215,7 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
     if not isinstance(gl, list):
         raise Exception("Constraints must be given as a list")
     f = f + OptimizationParameter()
+    print f.shape
 
     # Determine nature of constraints, either g(x)<=0 or g(x)==0
     gl_pure, gl_equality = sort_constraints(gl)
@@ -268,7 +257,7 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
                       for i in syms["p"]])
 
     # Create the ode function
-    ode_out = MXFunction(syms["x"] +
+    ode_out = MXFunction("ode_out",syms["x"] +
                          syms["u"] +
                          syms["p"] +
                          syms["v"] +
@@ -276,8 +265,6 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
                                       0.0) /
                                      N) *
                                     vertcat([i.dot for i in syms["x"]])])
-    ode_out.setOption("name", "ode_out")
-    ode_out.init()
 
     # Group together all symbols that are constant over an integration interval
     nonstates = struct_symMX([entry("u",
@@ -295,14 +282,13 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
         ode_out_ins += nonstates[k, ...]
 
     # Change the ode function signature to accept states/nonstates
-    ode = MXFunction(
-        daeIn(
-            x=states, p=nonstates), daeOut(
-            ode=ode_out(ode_out_ins)[0]))
-    ode.init()
+    ode = MXFunction("ode",
+        [states, nonstates], [
+            ode_out(ode_out_ins)[0]])
 
     # Create the integrator
-    intg = explicitRK(ode, 1, 4, integration_intervals)
+    intg = simpleRK(ode, integration_intervals, 4)
+
     intg = try_expand(intg)
 
     Pw0 = P[...] + X["V", ...] + \
@@ -316,29 +302,26 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
         ext_constr += ext_constr_e
 
     # Set path constraints bounds
-    h_out = MXFunction(syms["x"] +
+    h_out = MXFunction("h_out",syms["x"] +
                        syms["u"] +
                        syms["p"] +
                        syms["v"] +
-                       ext_syms, [a for a in gl_pure if dependsOn(a, syms["x"] +
-                                                                  syms["u"])])
-    h_out.setOption("name", "h_out")
-    g_out = MXFunction(syms["p"] +
+                       ext_syms, [a for a in gl_pure if dependsOn(a, veccat(syms["x"] +
+                                                                  syms["u"]))])
+    g_out = MXFunction("g_out",syms["p"] +
                        syms["v"] +
                        ext_syms +
-                       lims, [a for a in gl_pure if not dependsOn(a, syms["x"] +
-                                                                  syms["u"])])
-    g_out.setOption("name", "g_out")
-    f_out = MXFunction(syms["p"] + syms["v"] + ext_syms + lims, [f])
-    f_out.setOption("name", "f_out")
-    reg_out = MXFunction(syms["x"] +
+                       lims, [a for a in gl_pure if not dependsOn(a, veccat(syms["x"] +
+                                                                  syms["u"]))])
+    f_out = MXFunction("f_out",syms["p"] + syms["v"] + ext_syms + lims, [f])
+    f_out.printDimensions()
+    reg_out = MXFunction("reg_out",syms["x"] +
                          syms["u"] +
                          syms["p"] +
                          syms["v"] +
-                         ext_syms, [sumAll(vertcat([inner_prod(i, i) for i in regularize])) *
+                         ext_syms, [sumRows(vertcat([inner_prod(i, i) for i in regularize])) *
                                     T /
                                     N])
-    reg_out.setOption("name", "reg_out")
 
     # Expand if possible
     h_out = try_expand(h_out)
@@ -347,7 +330,7 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
     reg_out = try_expand(reg_out)
 
     # Diagnostics
-    if dependsOn(f, syms["x"]):
+    if dependsOn(f, veccat(syms["x"])):
         raise Exception(
             "Objective function cannot contain pure state variables. Try adding .start or .end")
 
@@ -358,26 +341,25 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
         [entry(str(i), expr=g) for i, g in enumerate(g_out(Pw0 + Lims))] +
         [entry("path", expr=[h_out(X["X", k, ...] + X["U", k, ...] + Pw0) for k in range(N)])] +
         ext_constr +
-        [entry("shooting", expr=[X["X", k + 1] - intg(x0=X["X", k], p=veccat([X["U", k]] + Pw0))[0] for k in range(N)])] +
+        [entry("shooting", expr=[X["X", k + 1] - intg([X["X", k], veccat([X["U", k]] + Pw0),1])[0] for k in range(N)])] +
         ([entry("periodic", expr=[X["X", -1] - X["X", 0]])]
          if periodic else [])
     )
 
     # Build a regularization expression
-    # We dont use a helper state because we wisth to directly influence the
+    # We dont use a helper state because we wish to directly influence the
     # objective
-    reg = sumAll(
+    reg = sumRows(
         vertcat([reg_out(X["X", k, ...] + X["U", k, ...] + Pw0)[0] for k in range(N)]))
 
+    if reg.isempty(): reg = 0
+
     # Construct the nlp
-    nlp = MXFunction(
+    nlp = MXFunction("nlp",
         nlpIn(
             x=X, p=P), nlpOut(
             f=f_out(
                 Pw0 + Lims)[0] + reg, g=G))
-    nlp.setOption("name", "nlp")
-    nlp.init()
-
     # Some extensions may wish to set default options
     for cl in ext_cl:
         exact_hessian = cl.setOptions(exact_hessian)
@@ -386,21 +368,19 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
     if exact_hessian is None:
         exact_hessian = True
 
-    # Allocate an ipopt solver
-    solver = NlpSolver("ipopt", nlp)
-    solver.setOption(
-        "hessian_approximation",
-        "exact" if exact_hessian else "limited-memory")
+    options = {}
+    options["hessian_approximation"] = "exact" if exact_hessian else "limited-memory"
     if not verbose:
-        solver.setOption("print_time", False)
-        solver.setOption("print_level", 0)
-        solver.setOption("verbose", False)
-    solver.init()
+        options["print_time"] = False
+        options["print_level"] = 0
+        options["verbose"] = False
+    # Allocate an ipopt solver
+    solver = NlpSolver("solver", "ipopt", nlp, options)
 
     # Set bounds on variables, set initial value
-    x0 = X(solver.input("x0"))
-    lbx = X(solver.input("lbx"))
-    ubx = X(solver.input("ubx"))
+    x0 = X(0)
+    lbx = X(0)
+    ubx = X(0)
 
     for i in syms["v"]:
         hs = str(hash(i))
@@ -420,19 +400,19 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
                     i.init, t=(k + 0.0) * T.init / N)
 
     # Set parameter values
-    par = P(solver.input("p"))
+    par = P(0)
 
     for i in syms["p"]:
         h = str(hash(i))
         par[h] = i.value
 
     # Set constraint bounds
-    lbg = G(solver.input("lbg"))
-    ubg = G(solver.input("ubg"))
+    lbg = G(0)
+    ubg = G(0)
 
     # Set normal constraints bounds
     for i, eq in enumerate(
-            [e for g, e in zip(gl, gl_equality) if not dependsOn(g, syms["x"] + syms["u"])]):
+            [e for g, e in zip(gl, gl_equality) if not dependsOn(g,veccat(syms["x"] + syms["u"]))]):
         if eq:
             lbg[str(i)] = ubg[str(i)] = 0
         else:
@@ -441,7 +421,7 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
 
     # Set path constraints bounds
     for i, eq in enumerate(
-            [e for g, e in zip(gl, gl_equality) if dependsOn(g, syms["x"] + syms["u"])]):
+            [e for g, e in zip(gl, gl_equality) if dependsOn(g, veccat(syms["x"] + syms["u"]))]):
         if eq:
             lbg["path", :, i] = ubg["path", :, i] = 0
         else:
@@ -458,7 +438,7 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
         lbg["periodic"] = ubg["periodic"] = 0
 
     # Solve the problem numerically
-    solver.evaluate()
+    sol = solver(x0=x0,lbg=lbg,ubg=ubg,lbx=lbx,ubx=ubx,p=par)
 
     # Raise an exception if not converged
     if solver.getStat('return_status') != "Solve_Succeeded":
@@ -466,7 +446,7 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
             "Problem failed to solve. Add verbose=True to see what happened.")
 
     # Add the solution to the OptimizationObjects
-    opt = X(solver.output("x"))
+    opt = X(sol["x"])
 
     # Extract solutions
     for i in syms["v"]:
