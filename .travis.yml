@@ -5,8 +5,9 @@ python:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y libgfortran3 liblapack3gf python-numpy python-scipy python-matplotlib
-  - "wget -O casadi.deb http://downloads.sourceforge.net/project/casadi/CasADi/2.2.0/Ubuntu-12.04/python-casadi_2.2.0-2_amd64.deb"
-  - sudo dpkg -i casadi.deb
+  - "wget -O casadi.tar.gz wget http://sourceforge.net/projects/casadi/files/CasADi/$CASADIVERSION/linux/casadi-py27-np1.9.1-v2.4.0.tar.gz/download"
+  - tar -zxvf casadi.tar.gz -C casadi
+  - export PYTHONPATH=$PYTHONPATH:`pwd`/casadi
   - pip install pytest-cov coveralls pypng ipython[notebook]
   - wget -O ipnbdoctest.py https://gist.githubusercontent.com/jgillis/1fd60cf60a802aab89d2/raw/d6cda04c5b1aa738a6cef90dac11594a7df2d918/ipynbdoctest.py
   

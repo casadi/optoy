@@ -32,7 +32,6 @@ def try_expand(f):
         f.init()
     try:
         r = SXFunction(f)
-        r.init()
         return r
     except:
         return f
@@ -186,8 +185,7 @@ def value(e, nums={}):
         for k in sorted(syms.keys()):
             xp += syms[k]
 
-        f = MXFunction(xp, [e])
-        f.init()
+        f = MXFunction("f",xp, [e])
         OptimizationContext.eval_cache[e] = (f, xp)
 
     N = Inf

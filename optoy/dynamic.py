@@ -314,7 +314,6 @@ def ocp(f, gl=[], regularize=[], verbose=False, N=20, T=1.0,
                        lims, [a for a in gl_pure if not dependsOn(a, veccat(syms["x"] +
                                                                   syms["u"]))])
     f_out = MXFunction("f_out",syms["p"] + syms["v"] + ext_syms + lims, [f])
-    f_out.printDimensions()
     reg_out = MXFunction("reg_out",syms["x"] +
                          syms["u"] +
                          syms["p"] +

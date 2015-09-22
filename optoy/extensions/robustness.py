@@ -83,8 +83,7 @@ def Sigma(e, nums=None):
         for k in sorted(syms.keys()):
             xp += syms[k]
 
-        f = MXFunction(xp, [e])
-        f.init()
+        f = MXFunction("f",xp, [e])
 
         Js = [
             f.jacobian(
@@ -93,8 +92,6 @@ def Sigma(e, nums=None):
                 len(xp)) if isinstance(
                 xp[i],
                 OptimizationState)]
-        for j in Js:
-            j.init()
 
         OptimizationContext.Jeval_cache[e] = (Js, xp)
 
