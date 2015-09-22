@@ -30,12 +30,9 @@ class OdeSimulator:
         x = MX.sym("x",2)
         u = MX.sym("u",1)
 
-        ode_fun = MXFunction(daeIn(x=x,p=u),daeOut(ode=ode(x,u)))
-        ode_fun.init()
+        ode_fun = MXFunction("ode",daeIn(x=x,p=u),daeOut(ode=ode(x,u)))
         
-        integr = Integrator(intg,ode_fun)
-        integr.setOption("tf",T)
-        integr.init()
+        integr = Integrator(intg,ode_fun,{"tf":T})
         self.integr = integr
         
     def __call__(self,x,u):

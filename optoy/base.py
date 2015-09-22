@@ -28,8 +28,6 @@ from casadi.tools import *
 
 def try_expand(f):
     """ Attempts to cast an MXFunction as SXFunxtion """
-    if not f.isInit():
-        f.init()
     try:
         r = SXFunction(f)
         return r
