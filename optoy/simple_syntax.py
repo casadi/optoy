@@ -27,14 +27,22 @@ from base import *
 
 class OdeSimulator:
     def __init__(self,ode,intg="rk",T=1):
-        x = MX.sym("x",2)
-        u = MX.sym("u",1)
+	self.ode =ode
+	self.intg = intg
+	self.T = T
+	self.constructed = False
 
-        ode_fun = MXFunction("ode",daeIn(x=x,p=u),daeOut(ode=ode(x,u)))
+    def construct(self,x,*args):
+        x = MX.sym("x",x.shape[0])
+	argsMX = [MX.sym("u",a.sparsity()) for a in args]
+
+        ode_fun = MXFunction("ode",daeIn(x=x,p=veccat(argsMX)),daeOut(ode=self.ode(x,*argsMX)))
         
-        integr = Integrator(intg,ode_fun,{"tf":T})
+        integr = Integrator("integrator",self.intg,ode_fun,{"tf":self.T})
         self.integr = integr
-        
-    def __call__(self,x,u):
-        return self.integr(x0=x,p=u)["xf"]
-        
+        self.constructed = True
+
+    def __call__(self,x,*args):
+	if not self.constructed:
+		self.construct(x,*args)
+        return self.integr(x0=x,p=veccat(args))["xf"]
